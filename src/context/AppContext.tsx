@@ -208,7 +208,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        const txt = await res.text();
+        throw new Error(txt || "Unexpected response from server");
+      }
 
       if (!res.ok) {
         throw new Error(data.error || "Could not register user.");
