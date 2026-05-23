@@ -93,7 +93,7 @@ export default function DashboardView() {
           {/* Logo block */}
           <div className="px-5 pb-6 flex items-center gap-2.5">
             <img 
-              src="/src/assets/images/adrie_logo_1779466005370.png" 
+              src="/src/assets/images/adrie.jpg" 
               alt="AdrieChartered Logo" 
               className="h-11 w-auto object-contain select-none bg-white rounded-lg p-0.5 border border-slate-50" 
               referrerPolicy="no-referrer"

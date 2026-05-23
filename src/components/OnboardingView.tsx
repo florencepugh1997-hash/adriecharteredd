@@ -281,7 +281,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
         {/* Brand Header */}
         <div className="z-10 flex items-center gap-3">
           <img 
-            src="/src/assets/images/adrie_logo_1779466005370.png" 
+            src="/src/assets/images/adrie.jpg" 
             alt="AdrieChartered Corporate Emblem" 
             className="h-10 w-auto bg-white rounded-lg p-0.5 object-contain shadow-md select-none"
             referrerPolicy="no-referrer"
@@ -468,7 +468,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
                 {/* Brand Corporate Logo Display */}
                 <div className="flex flex-col items-center">
                   <img 
-                    src="/src/assets/images/adrie_logo_1779466005370.png" 
+                    src="/src/assets/images/adrie.jpg" 
                     alt="AdrieChartered Logo" 
                     className="h-28 w-auto object-contain select-none mb-1 shadow-sm"
                     referrerPolicy="no-referrer"

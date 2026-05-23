@@ -114,7 +114,7 @@ export default function AdminView() {
           
           <div className="flex flex-col items-center mb-6">
             <img 
-              src="/src/assets/images/adrie_logo_1779466005370.png" 
+              src="/src/assets/images/adrie.jpg" 
               alt="AdrieChartered Logo" 
               className="h-20 w-auto object-contain mb-4" 
               referrerPolicy="no-referrer"

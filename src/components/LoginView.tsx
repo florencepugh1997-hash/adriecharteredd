@@ -34,7 +34,7 @@ export default function LoginView() {
       <div className="flex flex-col items-center mb-6">
         {/* AdrieChartered Corporate Brand Logo */}
         <img 
-          src="/src/assets/images/adrie_logo_1779466005370.png" 
+          src="/src/assets/images/adrie.jpg" 
           alt="AdrieChartered Logo" 
           className="h-28 w-auto object-contain select-none cursor-pointer hover:opacity-95 transition-opacity"
           onClick={() => { setView("admin"); showToast?.("info", "Compliance Clearance Mode enabled."); }}
