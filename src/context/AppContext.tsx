@@ -208,12 +208,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      // Read the response as text first to avoid consuming the stream twice
+      const rawText = await res.text();
       let data;
       try {
-        data = await res.json();
+        data = JSON.parse(rawText);
       } catch (e) {
-        const txt = await res.text();
-        throw new Error(txt || "Unexpected response from server");
+        // If parsing fails, the response is not JSON – surface the raw text as an error
+        throw new Error(rawText || "Unexpected response from server");
       }
 
       if (!res.ok) {
