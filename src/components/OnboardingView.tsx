@@ -180,11 +180,24 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
     setIsSubmitting(true);
     setError("");
     try {
-      const res = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: tempUserIdState, method: verifyMethod })
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000);
+      let res: Response;
+      try {
+        res = await fetch("/api/auth/send-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: tempUserIdState, method: verifyMethod }),
+          signal: controller.signal,
+        });
+      } catch (err: any) {
+        if (err?.name === "AbortError") {
+          throw new Error("Request timed out. Try SMS/WhatsApp or wait and retry.");
+        }
+        throw err;
+      } finally {
+        clearTimeout(timeoutId);
+      }
       const optData = await res.json();
       if (!res.ok) throw new Error(optData.error || "Failed to dispatch code.");
       if (optData.deliveryFailed || optData.delivered === false) {

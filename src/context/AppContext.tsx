@@ -2,6 +2,23 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, CurrencyCode, OtpMethod } from "../types.js";
 import { ToastMessage, ToastType } from "../components/Toast.js";
 
+const API_TIMEOUT_MS = 25_000;
+
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (err: any) {
+    if (err?.name === "AbortError") {
+      throw new Error("Request timed out. The email server may be slow — try SMS or WhatsApp instead.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export interface AppNotification {
   id: string;
   type: "failed" | "success" | "info" | "warning";
@@ -242,7 +259,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const sendOtp = async (userId: string, method: OtpMethod) => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/auth/send-otp", {
+      const res = await fetchWithTimeout("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, method }),
@@ -306,7 +323,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const resendOtp = async (userId: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/auth/resend-otp", {
+      const res = await fetchWithTimeout("/api/auth/resend-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),

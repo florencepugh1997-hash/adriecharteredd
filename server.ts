@@ -45,6 +45,17 @@ function isEmailConfigured(): boolean {
   return !!(user && pass);
 }
 
+const SMTP_TIMEOUT_MS = 20_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), ms);
+    }),
+  ]);
+}
+
 function getMailTransporter() {
   const host = process.env.EMAIL_HOST?.trim();
   const port = Number(process.env.EMAIL_PORT) || 587;
@@ -57,6 +68,9 @@ function getMailTransporter() {
       secure: port === 465,
       requireTLS: port === 587,
       auth: { user, pass },
+      connectionTimeout: SMTP_TIMEOUT_MS,
+      greetingTimeout: SMTP_TIMEOUT_MS,
+      socketTimeout: SMTP_TIMEOUT_MS,
     });
   }
   return null;
@@ -457,19 +471,22 @@ AdrieChartered — Banking Built Around You`;
     const { user: smtpUser } = getEmailCredentials();
     if (transporter && smtpUser) {
       try {
-        await transporter.verify();
-        await transporter.sendMail({
-          from: `"AdrieChartered Support" <${smtpUser}>`,
-          to: user.email,
-          subject: emailSubject,
-          text: emailContent,
-          html: `<p>Hi ${user.fullName},</p>
+        await withTimeout(
+          transporter.sendMail({
+            from: `"AdrieChartered Support" <${smtpUser}>`,
+            to: user.email,
+            subject: emailSubject,
+            text: emailContent,
+            html: `<p>Hi ${user.fullName},</p>
 <p>Your AdrieChartered verification code is:</p>
 <p style="font-size:24px;font-weight:bold;letter-spacing:4px">${otpCode}</p>
 <p>This code expires in ${expiryMinutes} minutes. Do not share it with anyone.</p>
 <p>If you did not request this, please ignore this email.</p>
 <p>— AdrieChartered Security Team</p>`,
-        });
+          }),
+          SMTP_TIMEOUT_MS,
+          "Gmail SMTP timed out. Try SMS/WhatsApp, or use port 465 with EMAIL_PORT=465 on Render."
+        );
         sent = true;
         statusDetail = "Sent securely via SMTP.";
       } catch (err: any) {
