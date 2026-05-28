@@ -129,6 +129,14 @@ app.get("/api/health", (req, res) => {
     status: "ok",
     database: getDatabaseMode(),
     emailConfigured: isEmailConfigured(),
+    // Helps debug Render: env group must be linked to THIS web service, then redeploy
+    envPresent: {
+      EMAIL_USER: !!process.env.EMAIL_USER,
+      EMAIL_PASS: !!process.env.EMAIL_PASS,
+      EMAIL_HOST: !!process.env.EMAIL_HOST,
+      MONGODB_URI: !!process.env.MONGODB_URI,
+      NODE_ENV: process.env.NODE_ENV || null,
+    },
     timestamp: new Date().toISOString(),
   });
 });
