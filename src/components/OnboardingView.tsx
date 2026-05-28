@@ -187,11 +187,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
       });
       const optData = await res.json();
       if (!res.ok) throw new Error(optData.error || "Failed to dispatch code.");
-      
-      if (optData.otpCodeHint) {
-        setOtpHint(optData.otpCodeHint);
-        showToast("info", `Verification Code simulated: ${optData.otpCodeHint}`);
-      }
+      // Code sent via email - no need to display on screen
       setStep(5); // Move to OTP entry
     } catch (err: any) {
       setError(err.message || "Failed to dispatch verification code.");
@@ -256,11 +252,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
   const handleResendCode = async () => {
     if (!tempUserIdState) return;
     try {
-      const data = await resendOtp(tempUserIdState);
-      if (data && data.otpCodeHint) {
-        setOtpHint(data.otpCodeHint);
-        showToast("info", `Fresh code simulated: ${data.otpCodeHint}`);
-      }
+      await resendOtp(tempUserIdState);
       setCountdown(30);
     } catch (err: any) {
       showToast("error", err.message || "Failed to dispatch backup digits.");

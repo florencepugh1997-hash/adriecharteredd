@@ -253,15 +253,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error(data.error || "OTP delivery failed.");
       }
 
-      // If mocked/sandbox log details, present a helpful pop-up style toast with the code!
-      if (data.mocked) {
-        showToast("success", `Security code simulated. Enter verification code: ${data.otpCodeHint}`);
-      } else {
-        showToast("success", `Security code dispatched to your registered ${method}.`);
-      }
+      showToast("success", `Security code dispatched to your registered ${method}. Please check your inbox.`);
 
       setView("verify");
-      return { otpCodeHint: data.otpCodeHint };
+      return {};
     } catch (error: any) {
       showToast("error", error.message);
       throw error;
@@ -318,13 +313,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error(data.error || "Could not resend transaction code.");
       }
 
-      if (data.mocked) {
-        showToast("success", `Security code simulated. Enter verification code: ${data.otpCodeHint}`);
-      } else {
-        showToast("success", `Security code re-sent via your chosen method.`);
-      }
+      showToast("success", `Security code re-sent. Please check your inbox.`);
 
-      return { otpCodeHint: data.otpCodeHint };
+      return {};
     } catch (error: any) {
       showToast("error", error.message);
       throw error;
