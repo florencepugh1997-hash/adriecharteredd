@@ -24,10 +24,10 @@ export default function AdminView() {
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const nameLower = adminName.toLowerCase().trim();
-    if (nameLower === "charles" && (adminPassword === "charles123" || adminPassword === "ako123")) {
+    if (nameLower === "akonam" && adminPassword === "ako123") {
       setAuthorized(true);
       setLoginError("");
-      showToast?.("success", "Compliance Node authorized. Welcome Superintendent Charles.");
+      showToast?.("success", "Compliance Node authorized. Welcome Superintendent Akonam.");
       fetchPending();
     } else {
       setLoginError("Invalid compliance node clearance credentials.");
@@ -114,7 +114,7 @@ export default function AdminView() {
           
           <div className="flex flex-col items-center mb-6">
             <img 
-              src="/src/assets/images/adrie.jpg" 
+              src="/src/assets/images/adrie_logo_1779466005370.png" 
               alt="AdrieChartered Logo" 
               className="h-20 w-auto object-contain mb-4" 
               referrerPolicy="no-referrer"
@@ -139,7 +139,7 @@ export default function AdminView() {
                 value={adminName}
                 onChange={(e) => setAdminName(e.target.value)}
                 className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:border-[#4A90D9] focus:ring-1 focus:ring-[#4A90D9] outline-none transition-all placeholder:text-slate-400 font-mono font-bold"
-                placeholder="e.g. charles"
+                placeholder="e.g. akonam"
                 required
               />
             </div>

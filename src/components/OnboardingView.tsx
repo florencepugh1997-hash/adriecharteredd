@@ -281,7 +281,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
         {/* Brand Header */}
         <div className="z-10 flex items-center gap-3">
           <img 
-            src="/src/assets/images/adrie.jpg" 
+            src="/src/assets/images/adrie_logo_1779466005370.png" 
             alt="AdrieChartered Corporate Emblem" 
             className="h-10 w-auto bg-white rounded-lg p-0.5 object-contain shadow-md select-none"
             referrerPolicy="no-referrer"
@@ -468,7 +468,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
                 {/* Brand Corporate Logo Display */}
                 <div className="flex flex-col items-center">
                   <img 
-                    src="/src/assets/images/adrie.jpg" 
+                    src="/src/assets/images/adrie_logo_1779466005370.png" 
                     alt="AdrieChartered Logo" 
                     className="h-28 w-auto object-contain select-none mb-1 shadow-sm"
                     referrerPolicy="no-referrer"
@@ -891,29 +891,50 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
               >
                 <div className="flex flex-col items-center text-center">
                   <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-1">
-                    {/* Security Lock Card icon matching Mockup 3 */}
-                    <svg viewBox="0 0 64 64" className="w-11 h-11 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <rect x="14" y="22" width="36" height="28" rx="6" fill="currentColor" className="text-blue-50" />
-                      <path d="M22 22V15C22 10 26 6 32 6C38 6 42 10 42 15V22" strokeLinecap="round" />
-                      <circle cx="32" cy="34" r="3" fill="currentColor" className="text-blue-500" />
-                      <path d="M32 37V42" strokeLinecap="round" />
-                    </svg>
+                    {verifyMethod === "email" ? (
+                      <Mail className="w-8 h-8 text-blue-500" />
+                    ) : (
+                      /* Security Lock Card icon matching Mockup 3 */
+                      <svg viewBox="0 0 64 64" className="w-11 h-11 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <rect x="14" y="22" width="36" height="28" rx="6" fill="currentColor" className="text-blue-50" />
+                        <path d="M22 22V15C22 10 26 6 32 6C38 6 42 10 42 15V22" strokeLinecap="round" />
+                        <circle cx="32" cy="34" r="3" fill="currentColor" className="text-blue-500" />
+                        <path d="M32 37V42" strokeLinecap="round" />
+                      </svg>
+                    )}
                   </div>
                   
-                  <h2 className="text-xl font-bold tracking-tight text-slate-900 mt-2">Verify your number</h2>
+                  <h2 className="text-xl font-bold tracking-tight text-slate-900 mt-2">
+                    {verifyMethod === "email" ? "Verify your email" : "Verify your number"}
+                  </h2>
                   
-                  <div className="flex items-center gap-1.5 justify-center mt-1 text-slate-500 text-xs">
+                  <div className="flex items-center gap-1.5 justify-center mt-1 text-slate-500 text-xs flex-wrap">
                     <span>Enter the 6-digit code sent to</span>
-                    <strong className="text-slate-800 font-bold font-mono">
-                      {phonePrefix} {phoneRaw}
-                    </strong>
-                    <button 
-                      onClick={() => setStep(2)} 
-                      className="p-1 hover:bg-slate-100 rounded text-[#4A90D9] bg-transparent border-0 cursor-pointer"
-                      title="Edit phone number coordinates"
-                    >
-                      <SquarePen className="w-3.5 h-3.5" />
-                    </button>
+                    {verifyMethod === "email" ? (
+                      <>
+                        <strong className="text-slate-800 font-bold">{email.toLowerCase()}</strong>
+                        <button 
+                          onClick={() => setStep(2)} 
+                          className="p-1 hover:bg-slate-100 rounded text-[#4A90D9] bg-transparent border-0 cursor-pointer"
+                          title="Edit email coordinates"
+                        >
+                          <SquarePen className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <strong className="text-slate-800 font-bold font-mono">
+                          {phonePrefix} {phoneRaw}
+                        </strong>
+                        <button 
+                          onClick={() => setStep(2)} 
+                          className="p-1 hover:bg-slate-100 rounded text-[#4A90D9] bg-transparent border-0 cursor-pointer"
+                          title="Edit phone number coordinates"
+                        >
+                          <SquarePen className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -936,13 +957,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
                     ))}
                   </div>
 
-                  {otpHint && (
-                    <div className="text-center">
-                      <span className="inline-block px-3 py-1 bg-yellow-50 text-yellow-700 text-[10px] font-mono rounded-lg border border-yellow-200 font-bold shadow-sm animate-pulse">
-                        Simulated Keycode: {otpHint}
-                      </span>
-                    </div>
-                  )}
+
 
                   {error && (
                     <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl text-[11px] font-semibold text-rose-600 text-center">

@@ -26,7 +26,7 @@ import { CurrencyCode, OtpMethod } from "./src/types.js";
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
 
@@ -918,4 +918,9 @@ async function startServer() {
   });
 }
 
-startServer();
+// Only start the server automatically if we are NOT running in a Vercel serverless environment.
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
