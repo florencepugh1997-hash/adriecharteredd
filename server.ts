@@ -33,22 +33,43 @@ app.use(express.json());
 
 // ---------------- LAZY UTILITY CLIENTS ----------------
 
-// Nodemailer Transporter
+// Nodemailer Transporter (Gmail app passwords are often pasted with spaces — strip them)
+function getEmailCredentials() {
+  const user = process.env.EMAIL_USER?.trim();
+  const pass = process.env.EMAIL_PASS?.replace(/\s+/g, "");
+  return { user, pass };
+}
+
+function isEmailConfigured(): boolean {
+  const { user, pass } = getEmailCredentials();
+  return !!(user && pass);
+}
+
 function getMailTransporter() {
-  const host = process.env.EMAIL_HOST;
-  const port = process.env.EMAIL_PORT;
-  const user = process.env.EMAIL_USER;
-  const pass = process.env.EMAIL_PASS;
+  const host = process.env.EMAIL_HOST?.trim();
+  const port = Number(process.env.EMAIL_PORT) || 587;
+  const { user, pass } = getEmailCredentials();
 
   if (user && pass) {
     return nodemailer.createTransport({
       host: host || "smtp.gmail.com",
-      port: Number(port) || 587,
-      secure: Number(port) === 465,
+      port,
+      secure: port === 465,
+      requireTLS: port === 587,
       auth: { user, pass },
     });
   }
   return null;
+}
+
+function deliveryErrorMessage(method: OtpMethod, details: string): string {
+  if (method === "email") {
+    if (!isEmailConfigured()) {
+      return "Email is not configured on the server. Set EMAIL_USER and EMAIL_PASS (Gmail app password) in Render environment variables.";
+    }
+    return `Email could not be delivered. ${details} Check your spam folder, or ask your admin to verify Gmail app-password settings.`;
+  }
+  return `Could not deliver code via ${method}. ${details}`;
 }
 
 // Twilio Client
@@ -107,6 +128,7 @@ app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
     database: getDatabaseMode(),
+    emailConfigured: isEmailConfigured(),
     timestamp: new Date().toISOString(),
   });
 });
@@ -277,10 +299,11 @@ Best regards,
 AdrieChartered Private Compliance Audit Team`;
 
     let emailStatus = "";
-    if (transporter) {
+    const { user: smtpUser } = getEmailCredentials();
+    if (transporter && smtpUser) {
       try {
         await transporter.sendMail({
-          from: `"AdrieChartered Support" <${process.env.EMAIL_USER}>`,
+          from: `"AdrieChartered Support" <${smtpUser}>`,
           to: pending.email,
           subject: emailSubject,
           text: emailContent,
@@ -400,7 +423,7 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 // helper to dispatch OTP with fallback
-async function executeOtpDispatch(user: any, method: OtpMethod, otpCode: string): Promise<{ success: boolean; mocked: boolean; details: string }> {
+async function executeOtpDispatch(user: any, method: OtpMethod, otpCode: string): Promise<{ delivered: boolean; details: string }> {
   const expiryMinutes = 10;
   
   // Format Messages exactly as requested
@@ -423,22 +446,30 @@ AdrieChartered — Banking Built Around You`;
 
   if (method === "email") {
     const transporter = getMailTransporter();
-    if (transporter) {
+    const { user: smtpUser } = getEmailCredentials();
+    if (transporter && smtpUser) {
       try {
+        await transporter.verify();
         await transporter.sendMail({
-          from: `"AdrieChartered Support" <${process.env.EMAIL_USER}>`,
+          from: `"AdrieChartered Support" <${smtpUser}>`,
           to: user.email,
           subject: emailSubject,
           text: emailContent,
+          html: `<p>Hi ${user.fullName},</p>
+<p>Your AdrieChartered verification code is:</p>
+<p style="font-size:24px;font-weight:bold;letter-spacing:4px">${otpCode}</p>
+<p>This code expires in ${expiryMinutes} minutes. Do not share it with anyone.</p>
+<p>If you did not request this, please ignore this email.</p>
+<p>— AdrieChartered Security Team</p>`,
         });
         sent = true;
         statusDetail = "Sent securely via SMTP.";
       } catch (err: any) {
         console.error("SMTP Delivery Failed:", err.message);
-        statusDetail = `SMTP failure: ${err.message}`;
+        statusDetail = err.message || "Unknown SMTP error";
       }
     } else {
-      statusDetail = "Transporter not configured.";
+      statusDetail = "EMAIL_USER / EMAIL_PASS not set on server.";
     }
   } else if (method === "sms") {
     const client = getTwilioClient();
@@ -490,10 +521,31 @@ AdrieChartered — Banking Built Around You`;
   console.log(`=============================================================\n`);
 
   return {
-    success: true,
-    mocked: !sent,
+    delivered: sent,
     details: statusDetail,
   };
+}
+
+async function persistOtpForUser(
+  userId: string,
+  isPending: boolean,
+  methodMapped: string,
+  hashedOtp: string,
+  otpExpiryTime: string
+) {
+  if (isPending) {
+    await updatePendingSignup(userId, {
+      otp: hashedOtp,
+      otpExpiry: otpExpiryTime,
+      otpMethod: methodMapped,
+    });
+  } else {
+    await updateUser(userId, {
+      otp: hashedOtp,
+      otpExpiry: otpExpiryTime,
+      otpMethod: methodMapped as OtpMethod,
+    });
+  }
 }
 
 // 4. POST /api/auth/send-otp -> Send OTP
@@ -529,35 +581,24 @@ app.post("/api/auth/send-otp", async (req, res) => {
       return res.status(400).json({ error: `Phone number required to send OTP via ${methodMapped}.` });
     }
 
-    // Generate 6-digit numeric OTP
-    const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Hash OTP before database storage (bcrypt salt rounds 12)
-    const hashedOtp = bcrypt.hashSync(rawOtp, 12);
-    const otpExpiryTime = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
+  const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const dispatch = await executeOtpDispatch(user, methodMapped, rawOtp);
 
-    // Update Record
-    if (isPending) {
-      await updatePendingSignup(userId, {
-        otp: hashedOtp,
-        otpExpiry: otpExpiryTime,
-        otpMethod: methodMapped,
-      });
-    } else {
-      await updateUser(userId, {
-        otp: hashedOtp,
-        otpExpiry: otpExpiryTime,
-        otpMethod: methodMapped as OtpMethod,
+    if (!dispatch.delivered) {
+      return res.status(502).json({
+        error: deliveryErrorMessage(methodMapped as OtpMethod, dispatch.details),
+        deliveryFailed: true,
       });
     }
 
-    // Send OTP
-    const dispatch = await executeOtpDispatch(user, methodMapped, rawOtp);
+    const hashedOtp = bcrypt.hashSync(rawOtp, 12);
+    const otpExpiryTime = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    await persistOtpForUser(userId, isPending, methodMapped, hashedOtp, otpExpiryTime);
 
     res.json({
       success: true,
       method: methodMapped,
-      mocked: dispatch.mocked,
+      delivered: true,
       message: `OTP dispatched to your registered ${methodMapped}.`,
     });
   } catch (err: any) {
@@ -665,29 +706,23 @@ app.post("/api/auth/resend-otp", async (req, res) => {
     const lastUsedMethod = user.otpMethod || "email";
 
     const rawOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const hashedOtp = bcrypt.hashSync(rawOtp, 12);
-    const otpExpiryTime = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const dispatch = await executeOtpDispatch(user, lastUsedMethod as OtpMethod, rawOtp);
 
-    if (isPending) {
-      await updatePendingSignup(userId, {
-        otp: hashedOtp,
-        otpExpiry: otpExpiryTime,
-        otpMethod: lastUsedMethod,
-      });
-    } else {
-      await updateUser(userId, {
-        otp: hashedOtp,
-        otpExpiry: otpExpiryTime,
-        otpMethod: lastUsedMethod,
+    if (!dispatch.delivered) {
+      return res.status(502).json({
+        error: deliveryErrorMessage(lastUsedMethod as OtpMethod, dispatch.details),
+        deliveryFailed: true,
       });
     }
 
-    const dispatch = await executeOtpDispatch(user, lastUsedMethod, rawOtp);
+    const hashedOtp = bcrypt.hashSync(rawOtp, 12);
+    const otpExpiryTime = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    await persistOtpForUser(userId, isPending, lastUsedMethod, hashedOtp, otpExpiryTime);
 
     res.json({
       success: true,
       method: lastUsedMethod,
-      mocked: dispatch.mocked,
+      delivered: true,
       message: `A fresh OTP has been dispatched to your ${lastUsedMethod}.`,
     });
   } catch (err: any) {

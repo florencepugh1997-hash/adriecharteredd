@@ -187,6 +187,9 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
       });
       const optData = await res.json();
       if (!res.ok) throw new Error(optData.error || "Failed to dispatch code.");
+      if (optData.deliveryFailed || optData.delivered === false) {
+        throw new Error(optData.error || "Verification email could not be sent.");
+      }
       setCountdown(30);
       setStep(5); // Move to OTP entry
     } catch (err: any) {

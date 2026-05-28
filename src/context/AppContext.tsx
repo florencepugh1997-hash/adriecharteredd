@@ -253,7 +253,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error(data.error || "OTP delivery failed.");
       }
 
-      showToast("success", `Security code dispatched to your registered ${method}. Please check your inbox.`);
+      if (data.deliveryFailed || data.delivered === false) {
+        throw new Error(data.error || "Verification code could not be delivered.");
+      }
+
+      showToast("success", `Security code sent to your ${method}. Check your inbox and spam folder.`);
 
       setView("verify");
       return {};
@@ -313,7 +317,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error(data.error || "Could not resend transaction code.");
       }
 
-      showToast("success", `Security code re-sent. Please check your inbox.`);
+      if (data.deliveryFailed || data.delivered === false) {
+        throw new Error(data.error || "Verification code could not be re-sent.");
+      }
+
+      showToast("success", `Security code re-sent. Check your inbox and spam folder.`);
 
       return {};
     } catch (error: any) {
