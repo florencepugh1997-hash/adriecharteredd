@@ -79,7 +79,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
   // Resend OTP interval countdown
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (step === 4 && countdown > 0) {
+    if (step === 5 && countdown > 0) {
       timer = setTimeout(() => setCountdown(countdown - 1), 1000);
     }
     return () => clearTimeout(timer);
