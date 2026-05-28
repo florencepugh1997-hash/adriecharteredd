@@ -78,10 +78,10 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
 
   // Resend OTP interval countdown
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (step === 5 && countdown > 0) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    }
+    if (step !== 5 || countdown <= 0) return;
+    const timer = setTimeout(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [step, countdown]);
 
@@ -187,7 +187,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
       });
       const optData = await res.json();
       if (!res.ok) throw new Error(optData.error || "Failed to dispatch code.");
-      // Code sent via email - no need to display on screen
+      setCountdown(30);
       setStep(5); // Move to OTP entry
     } catch (err: any) {
       setError(err.message || "Failed to dispatch verification code.");
@@ -248,7 +248,6 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
     }
   };
 
-  // Handles requesting a fresh OTP simulation
   const handleResendCode = async () => {
     if (!tempUserIdState) return;
     try {

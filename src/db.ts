@@ -36,6 +36,7 @@ export interface PendingSignup {
   otp?: string;
   otpExpiry?: string;
   otpMethod?: string;
+  isEmailVerified?: boolean;
   createdAt: string;
 }
 
@@ -137,6 +138,7 @@ if (IS_MONGO) {
       otp: { type: String },
       otpExpiry: { type: Date },
       otpMethod: { type: String },
+      isEmailVerified: { type: Boolean, default: false },
       createdAt: { type: Date, default: Date.now },
     });
 
@@ -151,27 +153,36 @@ if (IS_MONGO) {
 
 // ---------------- UNIFIED DB LAYER METHODS ----------------
 
+/** Maps a Mongoose user document to our API shape. Password only for auth lookups. */
+function mapMongoUserDoc(mongoUser: any, options?: { includePassword?: boolean }): User & { password?: string } {
+  const mapped: User & { password?: string } = {
+    _id: mongoUser._id.toString(),
+    fullName: mongoUser.fullName,
+    email: mongoUser.email,
+    phone: mongoUser.phone,
+    accountNumber: mongoUser.accountNumber,
+    sortCode: mongoUser.sortCode,
+    currency: mongoUser.currency as CurrencyCode,
+    balance: mongoUser.balance,
+    isVerified: mongoUser.isVerified,
+    otp: mongoUser.otp,
+    otpExpiry: mongoUser.otpExpiry ? mongoUser.otpExpiry.toISOString() : undefined,
+    otpMethod: mongoUser.otpMethod as OtpMethod,
+    createdAt: mongoUser.createdAt.toISOString(),
+  };
+  if (options?.includePassword) {
+    mapped.password = mongoUser.password;
+  }
+  return mapped;
+}
+
 export async function findUserByEmail(email: string): Promise<User | null> {
   const normEmail = email.toLowerCase().trim();
   if (IS_MONGO && MongooseUserModel && !mongoConnectionFailed) {
     try {
       const mongoUser = await MongooseUserModel.findOne({ email: normEmail });
       if (mongoUser) {
-        return {
-          _id: mongoUser._id.toString(),
-          fullName: mongoUser.fullName,
-          email: mongoUser.email,
-          phone: mongoUser.phone,
-          accountNumber: mongoUser.accountNumber,
-          sortCode: mongoUser.sortCode,
-          currency: mongoUser.currency as CurrencyCode,
-          balance: mongoUser.balance,
-          isVerified: mongoUser.isVerified,
-          otp: mongoUser.otp,
-          otpExpiry: mongoUser.otpExpiry ? mongoUser.otpExpiry.toISOString() : undefined,
-          otpMethod: mongoUser.otpMethod as OtpMethod,
-          createdAt: mongoUser.createdAt.toISOString(),
-        };
+        return mapMongoUserDoc(mongoUser);
       }
       return null;
     } catch (err: any) {
@@ -199,21 +210,7 @@ export async function findUserByEmailOrAccountNumber(identifier: string): Promis
         ]
       });
       if (mongoUser) {
-        return {
-          _id: mongoUser._id.toString(),
-          fullName: mongoUser.fullName,
-          email: mongoUser.email,
-          phone: mongoUser.phone,
-          accountNumber: mongoUser.accountNumber,
-          sortCode: mongoUser.sortCode,
-          currency: mongoUser.currency as CurrencyCode,
-          balance: mongoUser.balance,
-          isVerified: mongoUser.isVerified,
-          otp: mongoUser.otp,
-          otpExpiry: mongoUser.otpExpiry ? mongoUser.otpExpiry.toISOString() : undefined,
-          otpMethod: mongoUser.otpMethod as OtpMethod,
-          createdAt: mongoUser.createdAt.toISOString(),
-        };
+        return mapMongoUserDoc(mongoUser, { includePassword: true });
       }
       return null;
     } catch (err: any) {
@@ -226,7 +223,12 @@ export async function findUserByEmailOrAccountNumber(identifier: string): Promis
 
   // Fallback branch
   const db = loadLocalDb();
-  const user = db.users.find(u => u.email.toLowerCase().trim() === normInput || u.accountNumber.trim() === normInput);
+  const trimmedInput = identifier.trim();
+  const user = db.users.find(
+    (u) =>
+      u.email.toLowerCase().trim() === normInput ||
+      u.accountNumber.trim() === trimmedInput
+  );
   return user || null;
 }
 
@@ -549,7 +551,7 @@ export async function getTransactions(
 export async function getPendingSignups(): Promise<PendingSignup[]> {
   if (IS_MONGO && MongoosePendingSignupModel && !mongoConnectionFailed) {
     try {
-      const docs = await MongoosePendingSignupModel.find({}).sort({ createdAt: -1 });
+      const docs = await MongoosePendingSignupModel.find({ isEmailVerified: true }).sort({ createdAt: -1 });
       return docs.map((doc: any) => ({
         _id: doc._id.toString(),
         fullName: doc.fullName,
@@ -561,6 +563,7 @@ export async function getPendingSignups(): Promise<PendingSignup[]> {
         otp: doc.otp,
         otpExpiry: doc.otpExpiry ? doc.otpExpiry.toISOString() : undefined,
         otpMethod: doc.otpMethod,
+        isEmailVerified: doc.isEmailVerified,
         createdAt: doc.createdAt.toISOString(),
       }));
     } catch (err: any) {
@@ -569,7 +572,41 @@ export async function getPendingSignups(): Promise<PendingSignup[]> {
   }
 
   const db = loadLocalDb();
-  return db.pendingSignups || [];
+  const list = db.pendingSignups || [];
+  return list.filter((p) => p.isEmailVerified === true);
+}
+
+export async function findPendingSignupByAccountNumber(accountNumber: string): Promise<PendingSignup | null> {
+  const normAcct = accountNumber.trim();
+  if (IS_MONGO && MongoosePendingSignupModel && !mongoConnectionFailed) {
+    try {
+      const doc = await MongoosePendingSignupModel.findOne({ accountNumber: normAcct });
+      if (doc) {
+        return {
+          _id: doc._id.toString(),
+          fullName: doc.fullName,
+          email: doc.email,
+          password: doc.password,
+          phone: doc.phone,
+          currency: doc.currency as CurrencyCode,
+          accountNumber: doc.accountNumber,
+          otp: doc.otp,
+          otpExpiry: doc.otpExpiry ? doc.otpExpiry.toISOString() : undefined,
+          otpMethod: doc.otpMethod,
+          isEmailVerified: doc.isEmailVerified,
+          createdAt: doc.createdAt.toISOString(),
+        };
+      }
+      return null;
+    } catch (err: any) {
+      console.warn("MongoDB pending signup lookup by account number failed, fallback in-use:", err.message);
+    }
+  }
+
+  const db = loadLocalDb();
+  if (!db.pendingSignups) return null;
+  const found = db.pendingSignups.find((u) => u.accountNumber?.trim() === normAcct);
+  return found || null;
 }
 
 export async function createPendingSignup(data: Partial<PendingSignup>): Promise<PendingSignup> {
@@ -584,6 +621,7 @@ export async function createPendingSignup(data: Partial<PendingSignup>): Promise
         phone: data.phone,
         currency: data.currency || "GBP",
         accountNumber: data.accountNumber,
+        isEmailVerified: false,
       });
       const saved = await doc.save();
       return {
@@ -597,6 +635,7 @@ export async function createPendingSignup(data: Partial<PendingSignup>): Promise
         otp: saved.otp,
         otpExpiry: saved.otpExpiry ? saved.otpExpiry.toISOString() : undefined,
         otpMethod: saved.otpMethod,
+        isEmailVerified: saved.isEmailVerified,
         createdAt: saved.createdAt.toISOString(),
       };
     } catch (err: any) {
@@ -614,6 +653,7 @@ export async function createPendingSignup(data: Partial<PendingSignup>): Promise
     phone: data.phone || "",
     currency: (data.currency || "GBP") as CurrencyCode,
     accountNumber: data.accountNumber,
+    isEmailVerified: false,
     createdAt: new Date().toISOString(),
   };
 
@@ -660,6 +700,7 @@ export async function findPendingSignupByEmail(email: string): Promise<PendingSi
           otp: doc.otp,
           otpExpiry: doc.otpExpiry ? doc.otpExpiry.toISOString() : undefined,
           otpMethod: doc.otpMethod,
+          isEmailVerified: doc.isEmailVerified,
           createdAt: doc.createdAt.toISOString(),
         };
       }
@@ -691,6 +732,7 @@ export async function findPendingSignupById(id: string): Promise<PendingSignup |
           otp: doc.otp,
           otpExpiry: doc.otpExpiry ? doc.otpExpiry.toISOString() : undefined,
           otpMethod: doc.otpMethod,
+          isEmailVerified: doc.isEmailVerified,
           createdAt: doc.createdAt.toISOString(),
         };
       }
@@ -730,6 +772,7 @@ export async function updatePendingSignup(id: string, updates: Partial<PendingSi
           otp: updated.otp,
           otpExpiry: updated.otpExpiry ? updated.otpExpiry.toISOString() : undefined,
           otpMethod: updated.otpMethod,
+          isEmailVerified: updated.isEmailVerified,
           createdAt: updated.createdAt.toISOString(),
         };
       }

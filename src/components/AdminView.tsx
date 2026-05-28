@@ -23,8 +23,7 @@ export default function AdminView() {
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const nameLower = adminName.toLowerCase().trim();
-    if (nameLower === "akonam" && adminPassword === "ako123") {
+    if (adminName === "akonam" && adminPassword === "ako123") {
       setAuthorized(true);
       setLoginError("");
       showToast?.("success", "Compliance Node authorized. Welcome Superintendent Akonam.");

@@ -1,0 +1,28 @@
+{
+  "users": [],
+  "transactions": [],
+  "pendingSignups": [
+    {
+      "_id": "pend_f0hg594an",
+      "fullName": "Justin",
+      "email": "iamjustinchidera@gmail.com",
+      "password": "$2b$12$8QrcXWOKRvq2ct/QAj5HV.v6QIBav5RGhzyhCfhNopGoTOStOoNhm",
+      "phone": "+4435565676738",
+      "currency": "GBP",
+      "createdAt": "2026-05-22T17:41:09.885Z",
+      "otp": "$2b$12$xzKBPf8.FGGG9NzeH.Ptlee6vEdHKVZCRwu3xpPoXyLO3sqX2BO0G",
+      "otpExpiry": "2026-05-22T17:56:10.353Z"
+    },
+    {
+      "_id": "pend_jieka7ri6",
+      "fullName": "Jensenn Ackles",
+      "email": "acklesjensenn57@gmail.com",
+      "password": "$2b$12$qRa7SvUOuC/Ws7sCItA7m.Gh4pocCDn/LinIx6gd649pixcnioZ9y",
+      "phone": "+44677887689",
+      "currency": "GBP",
+      "createdAt": "2026-05-28T13:40:24.755Z",
+      "otp": "$2b$12$TNpNnH/BH9ybGEITb6tzCud468MKvhYnQiDCn5Yil4FioYJGOyy26",
+      "otpExpiry": "2026-05-28T13:55:25.031Z"
+    }
+  ]
+}

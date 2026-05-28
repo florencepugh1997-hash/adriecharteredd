@@ -21,13 +21,11 @@ export default function VerifyOtpView() {
 
   // Handle countdown Timer
   useEffect(() => {
-    let timer: any;
-    if (countdown > 0) {
-      timer = setInterval(() => {
-        setCountdown((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(timer);
+    if (countdown <= 0) return;
+    const timer = setTimeout(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
   }, [countdown]);
 
   // Focus helper onmount

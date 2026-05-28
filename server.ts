@@ -19,6 +19,7 @@ import {
   deletePendingSignup,
   findPendingSignupByEmail,
   findPendingSignupById,
+  findPendingSignupByAccountNumber,
   updatePendingSignup,
 } from "./src/db.js";
 import { CurrencyCode, OtpMethod } from "./src/types.js";
@@ -202,6 +203,12 @@ app.post("/api/admin/approve", async (req, res) => {
       return res.status(404).json({ error: "Onboarding application request not found or already verified." });
     }
 
+    if (!pending.isEmailVerified) {
+      return res.status(400).json({
+        error: "This applicant has not verified their security code yet. They must complete OTP verification before approval.",
+      });
+    }
+
     // Verify email is still available in the main database
     const existing = await findUserByEmail(pending.email);
     if (existing) {
@@ -345,12 +352,36 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(400).json({ error: "Email/Account Number and password are required." });
     }
 
-    const user = await findUserByEmailOrAccountNumber(email);
+    const identifier = String(email).trim();
+    const user = await findUserByEmailOrAccountNumber(identifier);
     if (!user) {
+      let pending =
+        (await findPendingSignupByEmail(identifier)) ||
+        (/^\d{10}$/.test(identifier) ? await findPendingSignupByAccountNumber(identifier) : null);
+
+      if (pending) {
+        if (!pending.isEmailVerified) {
+          return res.status(400).json({
+            error: "Please finish signup and verify your security code before signing in.",
+          });
+        }
+        return res.status(400).json({
+          error: "Your application is awaiting admin approval. You can sign in after your account is approved.",
+        });
+      }
+
       return res.status(400).json({ error: "No account found with this email or account number." });
     }
 
-    const passwordMatch = bcrypt.compareSync(password, (user as any).password);
+    const storedPassword = (user as { password?: string }).password;
+    if (!storedPassword) {
+      console.error("Login blocked: active user record is missing password hash", user._id);
+      return res.status(500).json({
+        error: "Account setup is incomplete. Please contact AdrieChartered support.",
+      });
+    }
+
+    const passwordMatch = bcrypt.compareSync(password, storedPassword);
     if (!passwordMatch) {
       return res.status(400).json({ error: "Invalid email/account number or password." });
     }
@@ -575,10 +606,11 @@ app.post("/api/auth/verify-otp", async (req, res) => {
     }
 
     if (isPending) {
-      // Clear OTP but do not log them in
+      // Clear OTP and mark as email verified
       await updatePendingSignup(userId, {
         otp: "",
         otpExpiry: "",
+        isEmailVerified: true,
       });
 
       return res.json({
