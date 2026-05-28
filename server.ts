@@ -526,7 +526,6 @@ app.post("/api/auth/send-otp", async (req, res) => {
     res.json({
       success: true,
       method: methodMapped,
-      otpCodeHint: rawOtp, // Provided for dynamic instant entry in testing environments
       mocked: dispatch.mocked,
       message: `OTP dispatched to your registered ${methodMapped}.`,
     });
@@ -656,9 +655,8 @@ app.post("/api/auth/resend-otp", async (req, res) => {
     res.json({
       success: true,
       method: lastUsedMethod,
-      otpCodeHint: rawOtp,
       mocked: dispatch.mocked,
-      message: `New security code sent successfully via ${lastUsedMethod}.`,
+      message: `A fresh OTP has been dispatched to your ${lastUsedMethod}.`,
     });
   } catch (err: any) {
     console.error("Resend OTP error:", err);
