@@ -239,8 +239,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         throw new Error(data.error || "Could not register user.");
       }
 
-      if (data.status === "pending") {
-        showToast("success", "Application Registered & Pending Authorization");
+      if (data.status === "pending" || data.status === "resume") {
+        const toastText =
+          data.status === "resume"
+            ? "Resuming your registration — verify your email next."
+            : "Application Registered — verify your email next.";
+        showToast("success", toastText);
         return { isPendingApproval: true, pendingId: data.pendingId, email: data.email, message: data.message };
       }
 

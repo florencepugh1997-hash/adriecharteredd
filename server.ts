@@ -16,6 +16,7 @@ import {
   getTransactions,
   getDatabaseMode,
   getPendingSignups,
+  getAllPendingSignups,
   createPendingSignup,
   deletePendingSignup,
   findPendingSignupByEmail,
@@ -271,7 +272,8 @@ app.post("/api/auth/signup", async (req, res) => {
     }
 
     const normEmail = email.toLowerCase().trim();
-    
+    let accountNumber = preferredAcct ? String(preferredAcct).trim() : undefined;
+
     // Check if they are already fully registered
     const existing = await findUserByEmail(normEmail);
     if (existing) {
@@ -281,11 +283,29 @@ app.post("/api/auth/signup", async (req, res) => {
     // Check if they are already in the pending list
     const existingPending = await findPendingSignupByEmail(normEmail);
     if (existingPending) {
-      return res.status(400).json({ error: "A registration request is already pending approval for this email address." });
+      if (existingPending.isEmailVerified) {
+        return res.status(400).json({
+          error: "This email is already verified and waiting for admin approval. No need to register again.",
+        });
+      }
+      // Incomplete signup (OTP not finished) — let them resume instead of blocking
+      const hashedPassword = bcrypt.hashSync(password, 12);
+      await updatePendingSignup(existingPending._id, {
+        fullName,
+        phone,
+        password: hashedPassword,
+        currency: currency as CurrencyCode,
+        accountNumber: accountNumber || existingPending.accountNumber,
+      });
+      return res.status(202).json({
+        status: "resume",
+        message: "You already started registration. Continue with email verification.",
+        pendingId: existingPending._id,
+        email: normEmail,
+      });
     }
 
     // If preferred account number requested, check active & pending taken status
-    let accountNumber = preferredAcct ? String(preferredAcct).trim() : undefined;
     if (accountNumber) {
       if (accountNumber.length !== 10 || isNaN(Number(accountNumber))) {
         return res.status(400).json({ error: "Preferred Account Number must reside within exact 10-digit constraints." });
@@ -297,7 +317,7 @@ app.post("/api/auth/signup", async (req, res) => {
       }
 
       // Check others in pending queue to avoid collisions
-      const pendingSignups = await getPendingSignups();
+      const pendingSignups = await getAllPendingSignups();
       const takenPending = pendingSignups.find(p => p.accountNumber === accountNumber);
       if (takenPending) {
         return res.status(400).json({ error: "The chosen Preferred Account Number is already reserved by another pending applicant." });
@@ -332,7 +352,7 @@ app.post("/api/auth/signup", async (req, res) => {
 // GET /api/admin/pending -> Retrieve pending applications
 app.get("/api/admin/pending", async (req, res) => {
   try {
-    const list = await getPendingSignups();
+    const list = await getAllPendingSignups();
     res.json({ pending: list });
   } catch (err: any) {
     console.error("Admin list pending error:", err);

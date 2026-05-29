@@ -9,6 +9,7 @@ interface PendingApplicant {
   phone: string;
   currency: string;
   accountNumber?: string;
+  isEmailVerified?: boolean;
   createdAt: string;
 }
 
@@ -216,7 +217,14 @@ export default function AdminView() {
           
           <div className="bg-slate-900 text-white p-4 rounded-2xl flex flex-col items-center justify-center min-w-36 text-center select-none shadow-lg">
             <span className="text-[9px] uppercase tracking-wider font-bold text-[#4A90D9]">Pending Approvals</span>
-            <span className="text-3xl font-mono font-bold mt-1 text-slate-100">{pendingList.length}</span>
+            <span className="text-3xl font-mono font-bold mt-1 text-slate-100">
+              {pendingList.filter((a) => a.isEmailVerified).length}
+            </span>
+            {pendingList.some((a) => !a.isEmailVerified) && (
+              <span className="text-[9px] text-amber-300/90 mt-1 block">
+                +{pendingList.filter((a) => !a.isEmailVerified).length} awaiting OTP
+              </span>
+            )}
           </div>
         </div>
 
@@ -247,6 +255,7 @@ export default function AdminView() {
                     <th className="py-3 px-4">Prospective Applicant</th>
                     <th className="py-3 px-4">Contact Particulars</th>
                     <th className="py-3 px-4">Onboarding Preferences</th>
+                    <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4 text-center">Cleared Actions</th>
                   </tr>
                 </thead>
@@ -301,14 +310,31 @@ export default function AdminView() {
                         </div>
                       </td>
 
+                      <td className="py-4 px-4">
+                        {app.isEmailVerified ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wide bg-emerald-50 text-emerald-700 px-2 py-1 rounded">
+                            Ready to approve
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold uppercase tracking-wide bg-amber-50 text-amber-800 px-2 py-1 rounded">
+                            Awaiting OTP
+                          </span>
+                        )}
+                      </td>
+
                       {/* Actions */}
                       <td className="py-4 px-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                           {/* Approve Button */}
                           <button
                             onClick={() => handleApprove(app._id, app.fullName)}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg border-0 flex items-center gap-1 cursor-pointer transition-colors hover:shadow-md focus:outline-none"
-                            title="Approve and create user profile"
+                            disabled={!app.isEmailVerified}
+                            className="bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold px-3 py-1.5 rounded-lg border-0 flex items-center gap-1 cursor-pointer transition-colors hover:shadow-md focus:outline-none disabled:cursor-not-allowed"
+                            title={
+                              app.isEmailVerified
+                                ? "Approve and create user profile"
+                                : "Applicant must verify email OTP before approval"
+                            }
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             Approve

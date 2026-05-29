@@ -548,32 +548,42 @@ export async function getTransactions(
 
 // ---------------- PENDING SIGNUPS HANDLERS ----------------
 
-export async function getPendingSignups(): Promise<PendingSignup[]> {
+function mapPendingSignupDoc(doc: any): PendingSignup {
+  return {
+    _id: doc._id.toString(),
+    fullName: doc.fullName,
+    email: doc.email,
+    password: doc.password,
+    phone: doc.phone,
+    currency: doc.currency as CurrencyCode,
+    accountNumber: doc.accountNumber,
+    otp: doc.otp,
+    otpExpiry: doc.otpExpiry ? doc.otpExpiry.toISOString() : undefined,
+    otpMethod: doc.otpMethod,
+    isEmailVerified: doc.isEmailVerified,
+    createdAt: doc.createdAt.toISOString(),
+  };
+}
+
+/** All onboarding records (including applicants who have not finished OTP yet). */
+export async function getAllPendingSignups(): Promise<PendingSignup[]> {
   if (IS_MONGO && MongoosePendingSignupModel && !mongoConnectionFailed) {
     try {
-      const docs = await MongoosePendingSignupModel.find({ isEmailVerified: true }).sort({ createdAt: -1 });
-      return docs.map((doc: any) => ({
-        _id: doc._id.toString(),
-        fullName: doc.fullName,
-        email: doc.email,
-        password: doc.password,
-        phone: doc.phone,
-        currency: doc.currency as CurrencyCode,
-        accountNumber: doc.accountNumber,
-        otp: doc.otp,
-        otpExpiry: doc.otpExpiry ? doc.otpExpiry.toISOString() : undefined,
-        otpMethod: doc.otpMethod,
-        isEmailVerified: doc.isEmailVerified,
-        createdAt: doc.createdAt.toISOString(),
-      }));
+      const docs = await MongoosePendingSignupModel.find({}).sort({ createdAt: -1 });
+      return docs.map(mapPendingSignupDoc);
     } catch (err: any) {
       console.warn("MongoDB pending signup fetch failed, fallback in-use:", err.message);
     }
   }
 
   const db = loadLocalDb();
-  const list = db.pendingSignups || [];
-  return list.filter((p) => p.isEmailVerified === true);
+  return db.pendingSignups || [];
+}
+
+/** Applicants who completed OTP and are ready for superintendent approval. */
+export async function getPendingSignups(): Promise<PendingSignup[]> {
+  const all = await getAllPendingSignups();
+  return all.filter((p) => p.isEmailVerified === true);
 }
 
 export async function findPendingSignupByAccountNumber(accountNumber: string): Promise<PendingSignup | null> {
