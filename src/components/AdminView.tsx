@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useApp } from "../context/AppContext";
+import BrandLogo from "./BrandLogo.jsx";
 import { Globe, ArrowLeft, ShieldAlert, CheckCircle2, XCircle, Clock, Smartphone, Mail, Briefcase, FileText } from "lucide-react";
 
 interface PendingApplicant {
@@ -14,7 +15,7 @@ interface PendingApplicant {
 }
 
 export default function AdminView() {
-  const { setView, showToast, databaseMode } = useApp();
+  const { setView, showToast } = useApp();
   const [pendingList, setPendingList] = useState<PendingApplicant[]>([]);
   const [loading, setLoading] = useState(false);
   const [authorized, setAuthorized] = useState(false);
@@ -113,12 +114,7 @@ export default function AdminView() {
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-900" />
           
           <div className="flex flex-col items-center mb-6">
-            <img 
-              src="/src/assets/images/adrie_logo_1779466005370.png" 
-              alt="AdrieChartered Logo" 
-              className="h-20 w-auto object-contain mb-4" 
-              referrerPolicy="no-referrer"
-            />
+            <BrandLogo className="h-20 w-auto object-contain mb-4" alt="AdrieChartered Logo" />
             <div className="flex flex-col items-center text-center">
               <h1 className="text-xl font-bold text-slate-950 tracking-tight leading-none">Compliance Gateway</h1>
               <span className="text-[10px] text-[#4A90D9] font-mono tracking-widest uppercase mt-2 font-extrabold">Superintendent Portal</span>
@@ -190,7 +186,7 @@ export default function AdminView() {
         </button>
         <span className="text-[10px] bg-slate-900 border border-slate-800 text-slate-300 font-mono px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
           <Globe className="w-3 h-3 text-[#4A90D9] animate-pulse" />
-          System: {databaseMode}
+          AdrieChartered Compliance Portal
         </span>
       </div>
 

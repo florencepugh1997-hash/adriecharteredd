@@ -1,28 +1,19 @@
-import { useState } from "react";
+import { useState, useRef, type ChangeEvent } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import { CURRENCIES, CurrencyCode } from "../types.js";
-import { Copy, Check, LogOut, Globe, User, ShieldCheck, Mail, Phone, Calendar, ChevronRight, X } from "lucide-react";
+import UserAvatar from "./UserAvatar.jsx";
+import { Copy, Check, LogOut, Globe, User, ShieldCheck, Mail, Phone, Calendar, ChevronRight, X, Camera } from "lucide-react";
 
 export default function ProfileView() {
-  const { user, updateCurrency, logout, databaseMode } = useApp();
+  const { user, updateCurrency, updateProfilePhoto, logout } = useApp();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
 
   if (!user) return null;
 
-  // Retrieve matching details
   const activeCurrency = CURRENCIES.find((c) => c.code === user.currency) || CURRENCIES[0];
-
-  // Initials Avatar generator
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  };
 
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -43,6 +34,30 @@ export default function ProfileView() {
   const selectCurrency = async (code: CurrencyCode) => {
     await updateCurrency(code);
     setShowCurrencyModal(false);
+  };
+
+  const handlePhotoSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      return;
+    }
+    if (file.size > 500 * 1024) {
+      alert("Please choose an image under 500KB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      if (typeof reader.result === "string") {
+        await updateProfilePhoto(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleRemovePhoto = async () => {
+    await updateProfilePhoto(null);
   };
 
   return (
@@ -110,10 +125,23 @@ export default function ProfileView() {
       <div className="bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden">
         {/* AdrieChartered layout stripe header */}
         <div className="h-28 bg-[#4A90D9]/15 flex items-end justify-between p-6 relative">
-          <div className="w-20 h-20 rounded-2xl bg-white border-4 border-white shadow-md flex items-center justify-center text-slate-800 font-bold text-2xl tracking-tight shrink-0 mt-8">
-            <div className="w-full h-full rounded-xl bg-gradient-to-br from-blue-100 to-sky-50 flex items-center justify-center text-[#4A90D9]">
-              {getInitials(user.fullName)}
-            </div>
+          <div className="relative mt-8 group">
+            <UserAvatar user={user} className="w-20 h-20" textClassName="text-2xl" />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute bottom-0 right-0 w-8 h-8 bg-[#4A90D9] hover:bg-[#3b7fc7] text-white rounded-full flex items-center justify-center border-2 border-white shadow-md cursor-pointer"
+              title="Change profile photo"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handlePhotoSelect}
+            />
           </div>
           <span className="px-3 py-1 bg-[#4A90D9]/10 text-[#4A90D9] font-mono text-[9px] font-bold rounded-lg border border-[#4A90D9]/20 self-start">
             SECURE ACCESS
@@ -130,13 +158,23 @@ export default function ProfileView() {
               </p>
             </div>
 
-            <button
+            <div className="flex flex-wrap items-center gap-2">
+              <button
               onClick={logout}
               className="px-4 h-10 bg-rose-50 border border-rose-100 hover:bg-rose-100 text-rose-700 font-semibold rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               <span>Log out</span>
             </button>
+            {user.profilePhoto && (
+              <button
+                onClick={handleRemovePhoto}
+                className="px-3 h-10 text-slate-500 hover:text-slate-700 font-medium rounded-xl text-xs border border-slate-200 bg-white cursor-pointer"
+              >
+                Remove photo
+              </button>
+            )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
@@ -262,15 +300,6 @@ export default function ProfileView() {
             </span>
           </div>
         </div>
-      </div>
-
-      {/* Database Mode system block */}
-      <div className="p-4 bg-slate-100 rounded-xl flex items-center justify-between text-[11px] text-slate-500 font-mono">
-        <span>Channel Host Data Node</span>
-        <span className="flex items-center gap-1.5 font-bold text-slate-700">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          {databaseMode}
-        </span>
       </div>
     </div>
   );

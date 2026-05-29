@@ -7,9 +7,11 @@ import FundView from "./FundView.jsx";
 import TransferView from "./TransferView.jsx";
 import HistoryView from "./HistoryView.jsx";
 import ProfileView from "./ProfileView.jsx";
+import BrandLogo from "./BrandLogo.jsx";
+import UserAvatar from "./UserAvatar.jsx";
 
 export default function DashboardView() {
-  const { user, token, databaseMode, refreshUserData, notifications, markNotificationRead, clearAllNotifications } = useApp();
+  const { user, token, refreshUserData, notifications, markNotificationRead, clearAllNotifications } = useApp();
 
   const [activeTab, setActiveTab] = useState<"home" | "send" | "history" | "profile">("home");
   const [showFundModal, setShowFundModal] = useState(false);
@@ -92,12 +94,7 @@ export default function DashboardView() {
         <div className="flex flex-col flex-1">
           {/* Logo block */}
           <div className="px-5 pb-6 flex items-center gap-2.5">
-            <img 
-              src="/src/assets/images/adrie_logo_1779466005370.png" 
-              alt="AdrieChartered Logo" 
-              className="h-11 w-auto object-contain select-none bg-white rounded-lg p-0.5 border border-slate-50" 
-              referrerPolicy="no-referrer"
-            />
+            <BrandLogo className="h-11 w-auto object-contain select-none bg-white rounded-lg p-0.5 border border-slate-50" />
             <div className="flex flex-col">
               <span className="font-bold text-sm tracking-tight text-[#4A90D9] leading-none font-sans">AdrieChartered</span>
               <span className="text-[7.5px] text-slate-400 font-mono tracking-widest mt-1 uppercase font-bold">UK PORTAL</span>
@@ -163,7 +160,7 @@ export default function DashboardView() {
               <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
               Security Status
             </p>
-            <p className="text-xs text-blue-700 font-semibold tracking-wide capitalize">{databaseMode} node</p>
+            <p className="text-xs text-blue-700 font-semibold tracking-wide">Secured & Protected</p>
           </div>
         </div>
       </aside>
@@ -254,12 +251,12 @@ export default function DashboardView() {
               )}
             </div>
 
-            <div 
+            <div
               onClick={() => setActiveTab("profile")}
-              className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-[#4A90D9] flex items-center justify-center text-white font-bold text-xs md:text-sm cursor-pointer hover:bg-[#3b79bc] hover:scale-105 active:scale-95 transition-all shadow-md shadow-blue-100"
+              className="cursor-pointer hover:scale-105 active:scale-95 transition-all"
               title="View Profile Settings"
             >
-              {getFirstName().slice(0, 2).toUpperCase()}
+              <UserAvatar user={user} className="w-9 h-9 md:w-10 md:h-10" textClassName="text-xs md:text-sm" />
             </div>
           </div>
         </header>

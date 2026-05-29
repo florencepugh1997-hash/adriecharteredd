@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
+import BrandLogo from "./BrandLogo.jsx";
 import { ShieldCheck, ArrowRight, Loader } from "lucide-react";
 
 export default function LoginView() {
@@ -33,12 +34,9 @@ export default function LoginView() {
 
       <div className="flex flex-col items-center mb-6">
         {/* AdrieChartered Corporate Brand Logo */}
-        <img 
-          src="/src/assets/images/adrie_logo_1779466005370.png" 
-          alt="AdrieChartered Logo" 
+        <BrandLogo
           className="h-28 w-auto object-contain select-none cursor-pointer hover:opacity-95 transition-opacity"
-          onClick={() => { setView("admin"); showToast?.("info", "Compliance Clearance Mode enabled."); }}
-          referrerPolicy="no-referrer"
+          alt="AdrieChartered Logo"
         />
         <div className="flex flex-col items-center text-center mt-2">
           <span className="text-[9px] text-slate-400 font-mono tracking-widest uppercase select-none">
@@ -118,7 +116,7 @@ export default function LoginView() {
           </button>
         </p>
         <button
-          onClick={() => setView("onboarding")}
+          onClick={() => setView("landing")}
           className="text-[11px] text-[#4A90D9] hover:text-[#3a7bbb] font-semibold hover:underline bg-transparent border-0 cursor-pointer p-0"
         >
           ← Return to Wealth Presentation

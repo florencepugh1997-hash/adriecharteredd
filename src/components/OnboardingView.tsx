@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import { CURRENCIES, CurrencyCode } from "../types.js";
 import { motion, AnimatePresence } from "motion/react";
+import BrandLogo from "./BrandLogo.jsx";
 import { 
   ShieldCheck, 
   ArrowRight, 
@@ -287,12 +288,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
 
         {/* Brand Header */}
         <div className="z-10 flex items-center gap-3">
-          <img 
-            src="/src/assets/images/adrie_logo_1779466005370.png" 
-            alt="AdrieChartered Corporate Emblem" 
-            className="h-10 w-auto bg-white rounded-lg p-0.5 object-contain shadow-md select-none"
-            referrerPolicy="no-referrer"
-          />
+          <BrandLogo className="h-10 w-auto bg-white rounded-lg p-0.5 object-contain shadow-md select-none" alt="AdrieChartered" />
           <div className="flex flex-col">
             <h2 className="text-sm font-bold tracking-tight text-white leading-none">AdrieChartered</h2>
             <p className="text-[7.5px] font-mono tracking-widest text-[#4A90D9] uppercase font-bold mt-1">Sovereign Wealth Gate</p>
@@ -474,12 +470,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
               >
                 {/* Brand Corporate Logo Display */}
                 <div className="flex flex-col items-center">
-                  <img 
-                    src="/src/assets/images/adrie_logo_1779466005370.png" 
-                    alt="AdrieChartered Logo" 
-                    className="h-28 w-auto object-contain select-none mb-1 shadow-sm"
-                    referrerPolicy="no-referrer"
-                  />
+                  <BrandLogo className="h-28 w-auto object-contain select-none mb-1 shadow-sm" alt="AdrieChartered Logo" />
                   <p className="text-[9px] font-mono tracking-widest text-slate-400 uppercase font-bold">Banking Beyond Limits</p>
                 </div>
 

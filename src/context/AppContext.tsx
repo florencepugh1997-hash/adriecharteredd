@@ -34,7 +34,6 @@ interface AppContextType {
   tempUserId: string | null;
   currentView: string;
   isLoading: boolean;
-  databaseMode: string;
   toasts: ToastMessage[];
   showToast: (type: ToastType, text: string) => void;
   removeToast: (id: string) => void;
@@ -47,6 +46,7 @@ interface AppContextType {
   resendOtp: (userId: string) => Promise<{ otpCodeHint?: string }>;
   logout: () => void;
   updateCurrency: (currency: CurrencyCode) => Promise<void>;
+  updateProfilePhoto: (profilePhoto: string | null) => Promise<void>;
   fundAccount: (
     amount: number,
     description?: string,
@@ -78,9 +78,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem("adrie_token"));
   const [tempUserId, setTempUserIdState] = useState<string | null>(localStorage.getItem("adrie_temp_user_id"));
-  const [currentView, setView] = useState<string>("onboarding");
+  const [currentView, setView] = useState<string>(() =>
+    localStorage.getItem("adrie_token") ? "dashboard" : "landing"
+  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [databaseMode, setDatabaseMode] = useState<string>("Detecting...");
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Show dynamic banner/toast helper
@@ -166,9 +167,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
-        setDatabaseMode(data.databaseMode);
-        // Only navigate to dashboard if we are stuck on credentials entry
-        if (currentView === "login" || currentView === "signup") {
+        if (currentView === "login" || currentView === "signup" || currentView === "landing") {
           setView("dashboard");
         }
       } else {
@@ -357,8 +356,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateToken(null);
     setTempUserId(null);
     setUser(null);
-    setView("login");
-    showToast("info", "Logged out of AdrieChartered portal.");
+    setView("landing");
+    showToast("info", "You have been signed out securely.");
   };
 
   // Profile / Transactions actions
@@ -384,6 +383,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       showToast("success", `Preselected display currency set to ${currency}.`);
     } catch (error: any) {
       showToast("error", error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateProfilePhoto = async (profilePhoto: string | null) => {
+    if (!token) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/user/profile-photo", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ profilePhoto: profilePhoto ?? "" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not update profile photo.");
+      setUser(data.user);
+      showToast("success", data.message || "Profile photo updated.");
+    } catch (error: any) {
+      showToast("error", error.message);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -477,7 +500,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         tempUserId,
         currentView,
         isLoading,
-        databaseMode,
         toasts,
         showToast,
         removeToast,
@@ -490,6 +512,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         resendOtp,
         logout,
         updateCurrency,
+        updateProfilePhoto,
         fundAccount,
         transferFunds,
         refreshUserData,

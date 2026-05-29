@@ -1,4 +1,5 @@
 import { useApp, AppProvider } from "./context/AppContext";
+import LandingView from "./components/LandingView";
 import OnboardingView from "./components/OnboardingView";
 import LoginView from "./components/LoginView";
 import SignupView from "./components/SignupView";
@@ -16,25 +17,22 @@ function AdrieBankingPortal() {
 
   return (
     <div className="min-h-screen bg-[#E8F4FD] text-slate-800 flex flex-col justify-start">
-      {/* Absolute floating notifications toast stack */}
       <Toast toasts={toasts} onClose={removeToast} />
 
-      {isCenteredCardView ? (
-        // Center grid wrapper for Centered Views
+      {currentView === "landing" && <LandingView />}
+
+      {currentView === "admin" && <AdminView />}
+      {currentView === "dashboard" && <DashboardView />}
+
+      {isCenteredCardView && (
         <div className="flex-grow flex items-center justify-center p-4 min-h-screen">
           <div className="w-full flex justify-center py-8">
-            {currentView === "onboarding" && <OnboardingView />}
+            {currentView === "onboarding" && <OnboardingView initialStep={2} />}
             {currentView === "login" && <LoginView />}
             {currentView === "signup" && <SignupView />}
             {currentView === "verify-method" && <VerifyMethodView />}
             {currentView === "verify" && <VerifyOtpView />}
           </div>
-        </div>
-      ) : (
-        // Fullscreen layout for Dashboard and Admin Views
-        <div className="w-full min-h-screen">
-          {currentView === "admin" && <AdminView />}
-          {currentView === "dashboard" && <DashboardView />}
         </div>
       )}
     </div>

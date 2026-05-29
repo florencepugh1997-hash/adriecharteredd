@@ -886,6 +886,36 @@ app.patch("/api/user/currency", authenticateToken, async (req, res) => {
   }
 });
 
+// 8b. PATCH /api/user/profile-photo -> Update profile picture (Authenticated)
+app.patch("/api/user/profile-photo", authenticateToken, async (req, res) => {
+  try {
+    const { profilePhoto } = req.body;
+    const user = (req as any).user;
+
+    if (profilePhoto !== null && profilePhoto !== undefined && profilePhoto !== "") {
+      if (typeof profilePhoto !== "string" || !profilePhoto.startsWith("data:image/")) {
+        return res.status(400).json({ error: "Please upload a valid image file (JPEG or PNG)." });
+      }
+      if (profilePhoto.length > 900_000) {
+        return res.status(400).json({ error: "Image is too large. Please use a photo under 500KB." });
+      }
+    }
+
+    const updated = await updateUser(user._id, {
+      profilePhoto: profilePhoto || "",
+    } as any);
+
+    res.json({
+      success: true,
+      user: updated,
+      message: profilePhoto ? "Profile photo updated." : "Profile photo removed.",
+    });
+  } catch (err: any) {
+    console.error("Update profile photo error:", err);
+    res.status(500).json({ error: "Could not update profile photo." });
+  }
+});
+
 // 9. POST /api/transactions/fund -> Credit funding (Authenticated)
 app.post("/api/transactions/fund", authenticateToken, async (req, res) => {
   try {
