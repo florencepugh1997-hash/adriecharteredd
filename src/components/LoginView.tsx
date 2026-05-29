@@ -57,6 +57,11 @@ export default function LoginView() {
           <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Email or Account Number</label>
           <input
             type="text"
+            inputMode="email"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-[#4A90D9] focus:ring-1 focus:ring-[#4A90D9] outline-none transition-all placeholder:text-slate-400"
@@ -70,6 +75,7 @@ export default function LoginView() {
           <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Password</label>
           <input
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 h-11 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-[#4A90D9] focus:ring-1 focus:ring-[#4A90D9] outline-none transition-all placeholder:text-slate-400"

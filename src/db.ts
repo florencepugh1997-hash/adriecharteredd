@@ -239,21 +239,7 @@ export async function findUserById(userId: string): Promise<User | null> {
     try {
       const mongoUser = await MongooseUserModel.findById(userId);
       if (mongoUser) {
-        return {
-          _id: mongoUser._id.toString(),
-          fullName: mongoUser.fullName,
-          email: mongoUser.email,
-          phone: mongoUser.phone,
-          accountNumber: mongoUser.accountNumber,
-          sortCode: mongoUser.sortCode,
-          currency: mongoUser.currency as CurrencyCode,
-          balance: mongoUser.balance,
-          isVerified: mongoUser.isVerified,
-          otp: mongoUser.otp,
-          otpExpiry: mongoUser.otpExpiry ? mongoUser.otpExpiry.toISOString() : undefined,
-          otpMethod: mongoUser.otpMethod as OtpMethod,
-          createdAt: mongoUser.createdAt.toISOString(),
-        };
+        return mapMongoUserDoc(mongoUser, { includePassword: true });
       }
       return null;
     } catch (err: any) {
@@ -289,21 +275,7 @@ export async function createUser(userData: Partial<User>): Promise<User> {
       });
 
       const saved = await freshUser.save();
-      return {
-        _id: saved._id.toString(),
-        fullName: saved.fullName,
-        email: saved.email,
-        phone: saved.phone,
-        accountNumber: saved.accountNumber,
-        sortCode: saved.sortCode,
-        currency: saved.currency as CurrencyCode,
-        balance: saved.balance,
-        isVerified: saved.isVerified,
-        otp: saved.otp,
-        otpExpiry: saved.otpExpiry ? saved.otpExpiry.toISOString() : undefined,
-        otpMethod: saved.otpMethod as OtpMethod,
-        createdAt: saved.createdAt.toISOString(),
-      };
+      return mapMongoUserDoc(saved);
     } catch (err: any) {
       console.warn("AdrieChartered: (createUser) MongoDB save collapsed, fallback in-use:", err.message || err);
       if (err?.name === "MongooseServerSelectionError" || String(err?.message).toLowerCase().includes("selection") || String(err?.message).toLowerCase().includes("timeout")) {
@@ -350,21 +322,7 @@ export async function updateUser(userId: string, updates: Partial<User>): Promis
         { new: true }
       );
       if (updated) {
-        return {
-          _id: updated._id.toString(),
-          fullName: updated.fullName,
-          email: updated.email,
-          phone: updated.phone,
-          accountNumber: updated.accountNumber,
-          sortCode: updated.sortCode,
-          currency: updated.currency as CurrencyCode,
-          balance: updated.balance,
-          isVerified: updated.isVerified,
-          otp: updated.otp,
-          otpExpiry: updated.otpExpiry ? updated.otpExpiry.toISOString() : undefined,
-          otpMethod: updated.otpMethod as OtpMethod,
-          createdAt: updated.createdAt.toISOString(),
-        };
+        return mapMongoUserDoc(updated);
       }
       return null;
     } catch (err: any) {

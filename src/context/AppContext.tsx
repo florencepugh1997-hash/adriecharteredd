@@ -74,6 +74,18 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+async function parseJsonResponse(res: Response): Promise<any> {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(
+      "Could not reach the banking server. If you are on mobile, use the full site URL (adriechartered.onrender.com) and try again."
+    );
+  }
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem("adrie_token"));
@@ -165,7 +177,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         },
       });
       if (res.ok) {
-        const data = await res.json();
+        const data = await parseJsonResponse(res);
         setUser(data.user);
         if (currentView === "login" || currentView === "signup" || currentView === "landing") {
           setView("dashboard");
@@ -196,9 +208,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password: pass }),
+        body: JSON.stringify({ email: email.trim(), password: pass }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
 
       if (!res.ok) {
         throw new Error(data.error || "Login credentials rejected.");
@@ -224,14 +236,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      // Read the response as text first to avoid consuming the stream twice
       const rawText = await res.text();
       let data;
       try {
-        data = JSON.parse(rawText);
-      } catch (e) {
-        // If parsing fails, the response is not JSON – surface the raw text as an error
-        throw new Error(rawText || "Unexpected response from server");
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        throw new Error(
+          "Could not reach the banking server. Use adriechartered.onrender.com and try again."
+        );
       }
 
       if (!res.ok) {
@@ -267,7 +279,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, method }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
 
       if (!res.ok) {
         throw new Error(data.error || "OTP delivery failed.");
@@ -295,9 +307,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, code }),
+        body: JSON.stringify({ userId, code: code.trim() }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
 
       if (!res.ok) {
         throw new Error(data.error || "Incorrect or expired verification code.");
@@ -331,7 +343,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
 
       if (!res.ok) {
         throw new Error(data.error || "Could not resend transaction code.");
@@ -373,7 +385,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({ currency }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
 
       if (!res.ok) {
         throw new Error(data.error || "Could not change currency code.");
@@ -400,7 +412,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({ profilePhoto: profilePhoto ?? "" }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (!res.ok) throw new Error(data.error || "Could not update profile photo.");
       setUser(data.user);
       showToast("success", data.message || "Profile photo updated.");
@@ -440,7 +452,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           paymentMethod: extra?.paymentMethod,
         }),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
 
       if (!res.ok) {
         throw new Error(data.error || "Manual deposit request failed.");
@@ -475,7 +487,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
 
       if (!res.ok) {
         throw new Error(data.error || "FPS electronic transfer failed.");
