@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import twilio from "twilio";
 import {
   findUserByEmail,
@@ -33,7 +34,37 @@ app.use(express.json());
 
 // ---------------- LAZY UTILITY CLIENTS ----------------
 
-// Nodemailer Transporter (Gmail app passwords are often pasted with spaces — strip them)
+// ---------------- EMAIL (Resend preferred, Gmail SMTP fallback) ----------------
+
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend | null {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) return null;
+  if (!resendClient) resendClient = new Resend(apiKey);
+  return resendClient;
+}
+
+function isResendConfigured(): boolean {
+  return !!process.env.RESEND_API_KEY?.trim();
+}
+
+/** From address — use onboarding@resend.dev for testing; your verified domain in production */
+function getResendFromAddress(): string {
+  return (
+    process.env.RESEND_FROM?.trim() ||
+    "AdrieChartered <onboarding@resend.dev>"
+  );
+}
+
+function getEmailProvider(): "resend" | "smtp" | "none" {
+  if (isResendConfigured()) return "resend";
+  const { user, pass } = getEmailCredentials();
+  if (user && pass) return "smtp";
+  return "none";
+}
+
+// Gmail SMTP (app passwords are often pasted with spaces — strip them)
 function getEmailCredentials() {
   const user = process.env.EMAIL_USER?.trim();
   const pass = process.env.EMAIL_PASS?.replace(/\s+/g, "");
@@ -41,8 +72,80 @@ function getEmailCredentials() {
 }
 
 function isEmailConfigured(): boolean {
-  const { user, pass } = getEmailCredentials();
-  return !!(user && pass);
+  return getEmailProvider() !== "none";
+}
+
+async function sendAppEmail(options: {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+}): Promise<{ delivered: boolean; details: string }> {
+  const html =
+    options.html ||
+    options.text
+      .split("\n")
+      .map((line) => `<p>${line.replace(/</g, "&lt;")}</p>`)
+      .join("");
+
+  if (isResendConfigured()) {
+    const resend = getResendClient();
+    if (!resend) {
+      return { delivered: false, details: "Resend client could not be initialized." };
+    }
+    try {
+      const { data, error } = await withTimeout(
+        resend.emails.send({
+          from: getResendFromAddress(),
+          to: [options.to],
+          subject: options.subject,
+          text: options.text,
+          html,
+        }),
+        SMTP_TIMEOUT_MS,
+        "Resend API timed out. Check RESEND_API_KEY on Render."
+      );
+      if (error) {
+        console.error("Resend delivery failed:", error);
+        return { delivered: false, details: error.message };
+      }
+      return {
+        delivered: true,
+        details: `Sent via Resend${data?.id ? ` (${data.id})` : ""}.`,
+      };
+    } catch (err: any) {
+      console.error("Resend error:", err.message);
+      return { delivered: false, details: err.message || "Resend send failed." };
+    }
+  }
+
+  const transporter = getMailTransporter();
+  const { user: smtpUser } = getEmailCredentials();
+  if (!transporter || !smtpUser) {
+    return {
+      delivered: false,
+      details:
+        "No email provider configured. Set RESEND_API_KEY on Render (recommended) or EMAIL_USER + EMAIL_PASS.",
+    };
+  }
+
+  try {
+    await withTimeout(
+      transporter.sendMail({
+        from: `"AdrieChartered Support" <${smtpUser}>`,
+        to: options.to,
+        subject: options.subject,
+        text: options.text,
+        html,
+      }),
+      SMTP_TIMEOUT_MS,
+      "Gmail SMTP timed out. Use Resend (RESEND_API_KEY) instead on Render."
+    );
+    return { delivered: true, details: "Sent via SMTP." };
+  } catch (err: any) {
+    console.error("SMTP Delivery Failed:", err.message);
+    return { delivered: false, details: err.message || "SMTP send failed." };
+  }
 }
 
 const SMTP_TIMEOUT_MS = 20_000;
@@ -79,9 +182,9 @@ function getMailTransporter() {
 function deliveryErrorMessage(method: OtpMethod, details: string): string {
   if (method === "email") {
     if (!isEmailConfigured()) {
-      return "Email is not configured on the server. Set EMAIL_USER and EMAIL_PASS (Gmail app password) in Render environment variables.";
+      return "Email is not configured. Add RESEND_API_KEY (recommended) or EMAIL_USER + EMAIL_PASS in Render environment variables.";
     }
-    return `Email could not be delivered. ${details} Check your spam folder, or ask your admin to verify Gmail app-password settings.`;
+    return `Email could not be delivered. ${details} Check spam, or verify your domain in the Resend dashboard.`;
   }
   return `Could not deliver code via ${method}. ${details}`;
 }
@@ -143,8 +246,11 @@ app.get("/api/health", (req, res) => {
     status: "ok",
     database: getDatabaseMode(),
     emailConfigured: isEmailConfigured(),
+    emailProvider: getEmailProvider(),
     // Helps debug Render: env group must be linked to THIS web service, then redeploy
     envPresent: {
+      RESEND_API_KEY: !!process.env.RESEND_API_KEY,
+      RESEND_FROM: !!process.env.RESEND_FROM,
       EMAIL_USER: !!process.env.EMAIL_USER,
       EMAIL_PASS: !!process.env.EMAIL_PASS,
       EMAIL_HOST: !!process.env.EMAIL_HOST,
@@ -302,7 +408,6 @@ app.post("/api/admin/approve", async (req, res) => {
     await deletePendingSignup(id);
 
     // Send Welcome Email
-    const transporter = getMailTransporter();
     const emailSubject = "Welcome to AdrieChartered - Profile Approved & Provisioned";
     const emailContent = `Dear ${pending.fullName},
 
@@ -320,24 +425,14 @@ To proceed, enter the banking portal using your Email or Account Number alongsid
 Best regards,
 AdrieChartered Private Compliance Audit Team`;
 
-    let emailStatus = "";
-    const { user: smtpUser } = getEmailCredentials();
-    if (transporter && smtpUser) {
-      try {
-        await transporter.sendMail({
-          from: `"AdrieChartered Support" <${smtpUser}>`,
-          to: pending.email,
-          subject: emailSubject,
-          text: emailContent,
-        });
-        emailStatus = "DELIVERED LIVE VIA SMTP";
-      } catch (err: any) {
-        console.error("Welcome Approval SMTP Delivery Failed:", err.message);
-        emailStatus = `SMTP failure: ${err.message}`;
-      }
-    } else {
-      emailStatus = "MOCKED (No SMTP credentials configured)";
-    }
+    const welcomeDispatch = await sendAppEmail({
+      to: pending.email,
+      subject: emailSubject,
+      text: emailContent,
+    });
+    const emailStatus = welcomeDispatch.delivered
+      ? `DELIVERED (${welcomeDispatch.details})`
+      : `FAILED (${welcomeDispatch.details})`;
 
     console.log(`\n=============================================================`);
     console.log(`[WELCOME DISPATCH / APPROVED]: New Account Active for ${pending.fullName}`);
@@ -467,35 +562,19 @@ AdrieChartered — Banking Built Around You`;
   let statusDetail = "";
 
   if (method === "email") {
-    const transporter = getMailTransporter();
-    const { user: smtpUser } = getEmailCredentials();
-    if (transporter && smtpUser) {
-      try {
-        await withTimeout(
-          transporter.sendMail({
-            from: `"AdrieChartered Support" <${smtpUser}>`,
-            to: user.email,
-            subject: emailSubject,
-            text: emailContent,
-            html: `<p>Hi ${user.fullName},</p>
+    const emailResult = await sendAppEmail({
+      to: user.email,
+      subject: emailSubject,
+      text: emailContent,
+      html: `<p>Hi ${user.fullName},</p>
 <p>Your AdrieChartered verification code is:</p>
 <p style="font-size:24px;font-weight:bold;letter-spacing:4px">${otpCode}</p>
 <p>This code expires in ${expiryMinutes} minutes. Do not share it with anyone.</p>
 <p>If you did not request this, please ignore this email.</p>
 <p>— AdrieChartered Security Team</p>`,
-          }),
-          SMTP_TIMEOUT_MS,
-          "Gmail SMTP timed out. Try SMS/WhatsApp, or use port 465 with EMAIL_PORT=465 on Render."
-        );
-        sent = true;
-        statusDetail = "Sent securely via SMTP.";
-      } catch (err: any) {
-        console.error("SMTP Delivery Failed:", err.message);
-        statusDetail = err.message || "Unknown SMTP error";
-      }
-    } else {
-      statusDetail = "EMAIL_USER / EMAIL_PASS not set on server.";
-    }
+    });
+    sent = emailResult.delivered;
+    statusDetail = emailResult.details;
   } else if (method === "sms") {
     const client = getTwilioClient();
     if (client && process.env.TWILIO_PHONE_NUMBER) {
