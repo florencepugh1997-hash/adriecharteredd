@@ -1,98 +1,112 @@
 import { useApp } from "../context/AppContext.jsx";
 import BrandLogo from "./BrandLogo.jsx";
-import { ArrowRight, ShieldCheck, Smartphone, Globe, Sparkles } from "lucide-react";
+import landingHero from "../assets/images/landing1.PNG";
+import landingTrust from "../assets/images/landing2.JPG";
 
 export default function LandingView() {
   const { setView } = useApp();
 
   return (
-    <div className="min-h-screen bg-[#E8F4FD] flex flex-col">
-      {/* Top nav */}
-      <header className="w-full max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BrandLogo className="h-12 w-auto object-contain" />
-          <div className="hidden sm:block">
-            <p className="font-bold text-[#4A90D9] text-sm leading-none">AdrieChartered</p>
-            <p className="text-[9px] text-slate-400 font-mono tracking-widest uppercase mt-1">Banking Built Around You</p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-white text-slate-800 flex flex-col">
+      {/* Nav */}
+      <header className="w-full max-w-5xl mx-auto px-6 py-6 flex items-center justify-between">
+        <BrandLogo className="h-10 w-auto object-contain" />
         <button
           onClick={() => setView("login")}
-          className="text-sm font-semibold text-[#4A90D9] hover:text-[#3b7fc7] bg-transparent border-0 cursor-pointer"
+          className="text-sm font-medium text-slate-600 hover:text-[#4A90D9] bg-transparent border-0 cursor-pointer transition-colors"
         >
           Log in
         </button>
       </header>
 
-      {/* Hero */}
-      <main className="flex-grow flex items-center justify-center px-6 py-10">
-        <div className="w-full max-w-6xl grid md:grid-cols-2 gap-12 items-center">
-          {/* Left — dark panel */}
-          <div className="bg-slate-900 text-white rounded-[32px] p-8 md:p-10 shadow-2xl relative overflow-hidden">
-            <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#4A90D9]/20 rounded-full blur-3xl" />
-            <div className="relative z-10 space-y-6">
-              <div className="flex items-center gap-3">
-                <BrandLogo className="h-10 w-auto object-contain bg-white rounded-lg p-1" />
-                <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">Est. 1682</span>
-              </div>
-              <h2 className="text-2xl md:text-3xl font-serif leading-snug">
-                Welcome to <span className="text-[#4A90D9]">AdrieChartered</span>
-              </h2>
-              <ul className="space-y-4 text-sm text-slate-300">
-                <li className="flex gap-3">
-                  <ShieldCheck className="w-5 h-5 text-[#4A90D9] shrink-0" />
-                  <span><strong className="text-white">Bank with confidence</strong> — enterprise-grade security on every transaction.</span>
-                </li>
-                <li className="flex gap-3">
-                  <Globe className="w-5 h-5 text-[#4A90D9] shrink-0" />
-                  <span><strong className="text-white">Manage with ease</strong> — multi-currency accounts and instant transfers.</span>
-                </li>
-                <li className="flex gap-3">
-                  <Smartphone className="w-5 h-5 text-[#4A90D9] shrink-0" />
-                  <span><strong className="text-white">Bank anytime, anywhere</strong> — your private portal, always online.</span>
-                </li>
-                <li className="flex gap-3">
-                  <Sparkles className="w-5 h-5 text-[#4A90D9] shrink-0" />
-                  <span><strong className="text-white">Here for you</strong> — dedicated support when you need it.</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Right — CTA */}
-          <div className="flex flex-col items-center text-center space-y-6">
-            <BrandLogo className="h-32 w-auto object-contain" />
-            <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">Banking Beyond Limits</p>
-
-            <div className="space-y-2 max-w-sm">
-              <h1 className="text-3xl md:text-4xl font-serif text-slate-900 tracking-tight leading-snug">
-                Smart banking <br />
-                for your <span className="text-[#4A90D9]">world.</span>
+      <main className="flex-grow">
+        {/* Hero */}
+        <section className="relative w-full max-w-5xl mx-auto px-6 pb-16">
+          <div className="relative rounded-3xl overflow-hidden aspect-[16/10] sm:aspect-[16/9] shadow-sm">
+            <img
+              src={landingHero}
+              alt="AdrieChartered Bank headquarters"
+              className="absolute inset-0 w-full h-full object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/20 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-8 sm:p-12 text-white">
+              <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-white/70 mb-3">
+                Established 1682
+              </p>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-normal tracking-tight leading-tight max-w-xl">
+                AdrieChartered Bank
               </h1>
-              <p className="text-sm text-slate-500">Secure. Simple. Always with you.</p>
-            </div>
-
-            <div className="w-full max-w-xs space-y-3 pt-2">
-              <button
-                onClick={() => setView("onboarding")}
-                className="w-full h-12 bg-[#4A90D9] hover:bg-[#3b7fc7] text-white font-bold rounded-2xl text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-400/20 border-0 transition-all"
-              >
-                <span>Get Started</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setView("login")}
-                className="w-full h-11 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-2xl text-sm border border-slate-200 cursor-pointer transition-colors"
-              >
-                I already have an account
-              </button>
+              <p className="mt-3 text-base sm:text-lg text-white/85 font-light max-w-md">
+                Fast, reliable banking — built around you.
+              </p>
             </div>
           </div>
-        </div>
+        </section>
+
+        {/* Intro */}
+        <section className="w-full max-w-5xl mx-auto px-6 pb-20">
+          <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
+            <div className="space-y-6">
+              <h2 className="text-2xl sm:text-3xl font-serif text-slate-900 leading-snug">
+                Banking you can trust, at the speed you need.
+              </h2>
+              <p className="text-slate-500 text-sm sm:text-base leading-relaxed">
+                AdrieChartered is a modern UK bank offering secure accounts, instant transfers,
+                and multi-currency support — online, anytime.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  onClick={() => setView("onboarding")}
+                  className="h-12 px-8 bg-[#4A90D9] hover:bg-[#3b7fc7] text-white text-sm font-semibold rounded-full cursor-pointer border-0 transition-colors"
+                >
+                  Open an account
+                </button>
+                <button
+                  onClick={() => setView("login")}
+                  className="h-12 px-8 bg-transparent hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-full cursor-pointer border border-slate-200 transition-colors"
+                >
+                  Sign in
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-center md:justify-end">
+              <img
+                src={landingTrust}
+                alt="Trusted banking partnership"
+                className="w-full max-w-sm object-contain"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Values — minimal strip */}
+        <section className="border-t border-slate-100 bg-slate-50/50">
+          <div className="w-full max-w-5xl mx-auto px-6 py-14 grid sm:grid-cols-3 gap-10 text-center sm:text-left">
+            <div>
+              <p className="text-xs font-semibold tracking-widest uppercase text-[#4A90D9] mb-2">Fast</p>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Instant transfers and real-time balance updates, wherever you are.
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold tracking-widest uppercase text-[#4A90D9] mb-2">Reliable</p>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Secure accounts protected with industry-standard encryption and verification.
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold tracking-widest uppercase text-[#4A90D9] mb-2">Personal</p>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Multi-currency support and a portal designed around how you bank.
+              </p>
+            </div>
+          </div>
+        </section>
       </main>
 
-      <footer className="py-6 text-center text-[10px] text-slate-400 font-mono uppercase tracking-wider">
-        © {new Date().getFullYear()} AdrieChartered · Authorised & Regulated
+      <footer className="py-8 text-center text-xs text-slate-400">
+        © {new Date().getFullYear()} AdrieChartered Bank · Authorised & Regulated
       </footer>
     </div>
   );
