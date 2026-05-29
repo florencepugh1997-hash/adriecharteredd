@@ -11,9 +11,17 @@ import BrandLogo from "./BrandLogo.jsx";
 import UserAvatar from "./UserAvatar.jsx";
 
 export default function DashboardView() {
-  const { user, token, refreshUserData, notifications, markNotificationRead, clearAllNotifications } = useApp();
+  const {
+    user,
+    token,
+    refreshUserData,
+    notifications,
+    markNotificationRead,
+    clearAllNotifications,
+    dashboardTab: activeTab,
+    setDashboardTab: setActiveTab,
+  } = useApp();
 
-  const [activeTab, setActiveTab] = useState<"home" | "send" | "history" | "profile">("home");
   const [showFundModal, setShowFundModal] = useState(false);
   const [isSecretFund, setIsSecretFund] = useState(false);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);

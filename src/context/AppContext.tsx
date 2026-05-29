@@ -1,6 +1,13 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { User, CurrencyCode, OtpMethod } from "../types.js";
 import { ToastMessage, ToastType } from "../components/Toast.js";
+import {
+  AppView,
+  DashboardTab,
+  pathToView,
+  viewToPath,
+  isAuthEntryView,
+} from "../navigation.js";
 
 const API_TIMEOUT_MS = 25_000;
 
@@ -33,11 +40,13 @@ interface AppContextType {
   token: string | null;
   tempUserId: string | null;
   currentView: string;
+  dashboardTab: DashboardTab;
   isLoading: boolean;
   toasts: ToastMessage[];
   showToast: (type: ToastType, text: string) => void;
   removeToast: (id: string) => void;
-  setView: (view: string) => void;
+  setView: (view: string, options?: { replace?: boolean; tab?: DashboardTab }) => void;
+  setDashboardTab: (tab: DashboardTab) => void;
   setTempUserId: (userId: string | null) => void;
   login: (email: string, pass: string) => Promise<{ needOtp: boolean; userId?: string }>;
   signup: (payload: any) => Promise<any>;
@@ -87,14 +96,93 @@ async function parseJsonResponse(res: Response): Promise<any> {
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const initialRoute = pathToView(window.location.pathname);
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem("adrie_token"));
   const [tempUserId, setTempUserIdState] = useState<string | null>(localStorage.getItem("adrie_temp_user_id"));
-  const [currentView, setView] = useState<string>(() =>
-    localStorage.getItem("adrie_token") ? "dashboard" : "landing"
-  );
+  const [currentView, setCurrentView] = useState<string>(() => {
+    const storedToken = localStorage.getItem("adrie_token");
+    if (storedToken && isAuthEntryView(initialRoute.view)) return "dashboard";
+    return initialRoute.view;
+  });
+  const [dashboardTab, setDashboardTabState] = useState<DashboardTab>(initialRoute.dashboardTab);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const isPopNavigation = useRef(false);
+
+  const applyRoute = useCallback((view: AppView, tab: DashboardTab = "home") => {
+    setCurrentView(view);
+    setDashboardTabState(tab);
+  }, []);
+
+  const setView = useCallback(
+    (view: string, options?: { replace?: boolean; tab?: DashboardTab }) => {
+      const nextView = view as AppView;
+      const nextTab = options?.tab ?? (nextView === "dashboard" ? dashboardTab : "home");
+      const path = viewToPath(nextView, nextTab);
+
+      applyRoute(nextView, nextTab);
+
+      if (isPopNavigation.current) {
+        isPopNavigation.current = false;
+        return;
+      }
+
+      if (options?.replace) {
+        window.history.replaceState({ view: nextView, tab: nextTab }, "", path);
+      } else if (window.location.pathname !== path) {
+        window.history.pushState({ view: nextView, tab: nextTab }, "", path);
+      }
+    },
+    [applyRoute, dashboardTab]
+  );
+
+  const setDashboardTab = useCallback(
+    (tab: DashboardTab) => {
+      if (currentView !== "dashboard") return;
+      const path = viewToPath("dashboard", tab);
+      setDashboardTabState(tab);
+
+      if (isPopNavigation.current) {
+        isPopNavigation.current = false;
+        return;
+      }
+
+      if (window.location.pathname !== path) {
+        window.history.pushState({ view: "dashboard", tab }, "", path);
+      }
+    },
+    [currentView]
+  );
+
+  useEffect(() => {
+    const onPopState = () => {
+      isPopNavigation.current = true;
+      const { view, dashboardTab: tab } = pathToView(window.location.pathname);
+      applyRoute(view, tab);
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [applyRoute]);
+
+  useEffect(() => {
+    const path = viewToPath(currentView as AppView, dashboardTab);
+    window.history.replaceState({ view: currentView, tab: dashboardTab }, "", path);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const activeToken = token ?? localStorage.getItem("adrie_token");
+    if (currentView === "dashboard" && !activeToken) {
+      setView("login", { replace: true });
+      return;
+    }
+    const activeTempId = tempUserId ?? localStorage.getItem("adrie_temp_user_id");
+    if ((currentView === "verify" || currentView === "verify-method") && !activeTempId) {
+      setView("login", { replace: true });
+    }
+  }, [currentView, token, tempUserId, setView]);
 
   // Show dynamic banner/toast helper
   const showToast = (type: ToastType, text: string) => {
@@ -180,13 +268,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const data = await parseJsonResponse(res);
         setUser(data.user);
         if (currentView === "login" || currentView === "signup" || currentView === "landing") {
-          setView("dashboard");
+          setView("dashboard", { replace: true });
         }
       } else {
         // Clear corrupt token
         updateToken(null);
         setUser(null);
-        setView("login");
+        setView("login", { replace: true });
       }
     } catch (err) {
       console.error("Session refresh error:", err);
@@ -325,7 +413,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setUser(data.user);
       updateToken(data.token);
       setTempUserId(null);
-      setView("dashboard");
+      setView("dashboard", { replace: true });
       return { isPending: false };
     } catch (error: any) {
       showToast("error", error.message);
@@ -368,7 +456,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateToken(null);
     setTempUserId(null);
     setUser(null);
-    setView("landing");
+    setView("landing", { replace: true });
     showToast("info", "You have been signed out securely.");
   };
 
@@ -511,11 +599,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         token,
         tempUserId,
         currentView,
+        dashboardTab,
         isLoading,
         toasts,
         showToast,
         removeToast,
         setView,
+        setDashboardTab,
         setTempUserId,
         login,
         signup,
