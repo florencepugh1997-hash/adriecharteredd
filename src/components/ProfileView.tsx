@@ -296,10 +296,7 @@ export default function ProfileView() {
               <Globe className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Digital Currency Preferences</h3>
-              <p className="text-xs text-slate-500 mt-1 leading-normal max-w-md">
-                Adjust display symbols and automatic balance notations. Selecting an update connects instantly to profile matrices.
-              </p>
+              <h3 className="text-sm font-bold text-slate-900">Preferred Currency</h3>
             </div>
           </div>
 
@@ -313,7 +310,7 @@ export default function ProfileView() {
         </div>
 
         <div className="mt-5 p-4 rounded-xl border-2 border-dashed border-blue-100 bg-sky-50/15 flex items-center justify-between">
-          <span className="text-xs text-slate-600 font-medium">Currently Selected Framework</span>
+          <span className="text-xs text-slate-600 font-medium">Currently selected currency</span>
           <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
             <span className="text-lg">{activeCurrency.flag}</span>
             <span>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import { CURRENCIES, Transaction } from "../types.js";
-import { Home, Send, History as HistoryIcon, User as UserIcon, PlusCircle, ArrowUpRight, ArrowDownLeft, Shield, Bell, HelpCircle, ArrowRight, Loader, ShieldCheck } from "lucide-react";
+import { Home, Send, History as HistoryIcon, User as UserIcon, PlusCircle, ArrowUpRight, ArrowDownLeft, Shield, Bell, HelpCircle, ArrowRight, Loader } from "lucide-react";
 
 import FundView from "./FundView.jsx";
 import TransferView from "./TransferView.jsx";
@@ -151,17 +151,6 @@ export default function DashboardView() {
               <span>Profile</span>
             </button>
           </nav>
-        </div>
-
-        {/* Sidebar Footer block showing secure status and db method */}
-        <div className="px-6">
-          <div className="bg-blue-50/70 rounded-2xl p-4 border border-blue-100 pb-3">
-            <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider mb-1 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-              Security Status
-            </p>
-            <p className="text-xs text-blue-700 font-semibold tracking-wide">Secured & Protected</p>
-          </div>
         </div>
       </aside>
 
