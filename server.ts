@@ -50,12 +50,27 @@ function isResendConfigured(): boolean {
   return !!process.env.RESEND_API_KEY?.trim();
 }
 
-/** From address — use onboarding@resend.dev for testing; your verified domain in production */
+const VERIFIED_BANK_FROM = "AdrieChartered <noreply@adriechartered.com>";
+
+/** From address — must use your verified domain (e.g. adriechartered.com) to email any customer */
 function getResendFromAddress(): string {
-  return (
-    process.env.RESEND_FROM?.trim() ||
-    "AdrieChartered <onboarding@resend.dev>"
-  );
+  const configured = process.env.RESEND_FROM?.trim();
+  if (!configured) {
+    return VERIFIED_BANK_FROM;
+  }
+  // Legacy Render setups still point at Resend sandbox — upgrade in production
+  if (process.env.NODE_ENV === "production" && /resend\.dev/i.test(configured)) {
+    console.warn(
+      "RESEND_FROM uses @resend.dev (test mode). Using noreply@adriechartered.com instead. Set RESEND_FROM on Render to your verified domain."
+    );
+    return VERIFIED_BANK_FROM;
+  }
+  return configured;
+}
+
+function isResendSandboxFrom(): boolean {
+  const from = process.env.RESEND_FROM?.trim() || "";
+  return /@resend\.dev/i.test(from);
 }
 
 function getEmailProvider(): "resend" | "smtp" | "none" {
@@ -183,9 +198,15 @@ function getMailTransporter() {
 function deliveryErrorMessage(method: OtpMethod, details: string): string {
   if (method === "email") {
     if (!isEmailConfigured()) {
-      return "Email is not configured. Add RESEND_API_KEY (recommended) or EMAIL_USER + EMAIL_PASS in Render environment variables.";
+      return "Email is not configured. Add RESEND_API_KEY on Render, then redeploy.";
     }
-    return `Email could not be delivered. ${details} Check spam, or verify your domain in the Resend dashboard.`;
+    if (/testing emails|verify a domain|resend\.dev/i.test(details)) {
+      return (
+        "Email is still in Resend test mode. On Render, set RESEND_FROM to " +
+        'AdrieChartered <noreply@adriechartered.com> (your domain is verified), save, and redeploy.'
+      );
+    }
+    return `Email could not be delivered. ${details} Check your spam folder.`;
   }
   return `Could not deliver code via ${method}. ${details}`;
 }
@@ -258,6 +279,8 @@ app.get("/api/health", (req, res) => {
       MONGODB_URI: !!process.env.MONGODB_URI,
       NODE_ENV: process.env.NODE_ENV || null,
     },
+    resendFromEffective: getResendFromAddress(),
+    resendSandboxFrom: isResendSandboxFrom(),
     timestamp: new Date().toISOString(),
   });
 });
