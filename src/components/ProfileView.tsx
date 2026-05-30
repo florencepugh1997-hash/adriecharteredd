@@ -3,7 +3,7 @@ import { useApp } from "../context/AppContext.jsx";
 import { CURRENCIES, CurrencyCode } from "../types.js";
 import UserAvatar from "./UserAvatar.jsx";
 import ContactSupportLink from "./ContactSupportLink.jsx";
-import { Copy, Check, LogOut, Globe, User, ShieldCheck, Mail, Phone, Calendar, ChevronRight, X, Camera } from "lucide-react";
+import { Copy, Check, LogOut, Globe, User, ShieldCheck, Mail, Phone, ChevronRight, X, Camera } from "lucide-react";
 
 export default function ProfileView() {
   const { user, updateCurrency, updateProfilePhoto, logout } = useApp();
@@ -20,16 +20,6 @@ export default function ProfileView() {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2500);
-  };
-
-  const formatJoinedDate = (isoStr?: string) => {
-    if (!isoStr) return "22/05/2026";
-    const d = new Date(isoStr);
-    return d.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
   };
 
   const selectCurrency = async (code: CurrencyCode) => {
@@ -223,18 +213,6 @@ export default function ProfileView() {
                 <div>
                   <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Mobile Number Target</span>
                   <span className="text-xs font-mono font-semibold text-slate-800">{user.phone}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Member Since</span>
-                  <span className="text-xs font-mono font-semibold text-slate-800">
-                    {formatJoinedDate(user.createdAt)}
-                  </span>
                 </div>
               </div>
             </div>
