@@ -71,6 +71,8 @@ export interface User {
   currency: CurrencyCode;
   balance: number;
   isVerified: boolean;
+  isBlocked?: boolean;
+  blockedAt?: string;
   profilePhoto?: string;
   otp?: string;
   otpExpiry?: string;

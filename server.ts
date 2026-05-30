@@ -23,6 +23,7 @@ import {
   findPendingSignupById,
   findPendingSignupByAccountNumber,
   updatePendingSignup,
+  getAllActiveUsers,
 } from "./src/db.js";
 import { CurrencyCode, OtpMethod } from "./src/types.js";
 
@@ -251,6 +252,12 @@ async function authenticateToken(req: express.Request, res: express.Response, ne
     const user = await findUserById(token);
     if (!user) {
       return res.status(403).json({ error: "Session expired or invalid user." });
+    }
+    if (user.isBlocked) {
+      return res.status(403).json({
+        error: "Your account has been temporarily blocked. Please contact support for assistance.",
+        code: "ACCOUNT_BLOCKED",
+      });
     }
     // Route user context to request
     (req as any).user = user;
@@ -527,6 +534,75 @@ app.post("/api/admin/reject", async (req, res) => {
   }
 });
 
+// GET /api/admin/active-users -> List approved active accounts
+app.get("/api/admin/active-users", async (_req, res) => {
+  try {
+    const users = await getAllActiveUsers();
+    res.json({ users });
+  } catch (err: any) {
+    console.error("Admin list active users error:", err);
+    res.status(500).json({ error: "Failed to retrieve active accounts." });
+  }
+});
+
+// POST /api/admin/block -> Temporarily block an active account
+app.post("/api/admin/block", async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({ error: "User ID is required." });
+    }
+
+    const user = await findUserById(id);
+    if (!user) {
+      return res.status(404).json({ error: "Active account not found." });
+    }
+
+    const updated = await updateUser(id, {
+      isBlocked: true,
+      blockedAt: new Date().toISOString(),
+    });
+
+    res.json({
+      success: true,
+      user: updated,
+      message: `${user.fullName}'s account has been temporarily blocked.`,
+    });
+  } catch (err: any) {
+    console.error("Admin block user error:", err);
+    res.status(500).json({ error: "Failed to block account." });
+  }
+});
+
+// POST /api/admin/unblock -> Restore a blocked account
+app.post("/api/admin/unblock", async (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) {
+      return res.status(400).json({ error: "User ID is required." });
+    }
+
+    const user = await findUserById(id);
+    if (!user) {
+      return res.status(404).json({ error: "Active account not found." });
+    }
+
+    const updated = await updateUser(id, {
+      isBlocked: false,
+      blockedAt: undefined,
+    });
+
+    res.json({
+      success: true,
+      user: updated,
+      message: `${user.fullName}'s account has been unblocked.`,
+    });
+  } catch (err: any) {
+    console.error("Admin unblock user error:", err);
+    res.status(500).json({ error: "Failed to unblock account." });
+  }
+});
+
 // 3. POST /api/auth/login -> Verify Credentials & Pre-auth
 app.post("/api/auth/login", async (req, res) => {
   try {
@@ -567,6 +643,13 @@ app.post("/api/auth/login", async (req, res) => {
     const passwordMatch = bcrypt.compareSync(password, storedPassword);
     if (!passwordMatch) {
       return res.status(400).json({ error: "Invalid email/account number or password." });
+    }
+
+    if (user.isBlocked) {
+      return res.status(403).json({
+        error: "Your account has been temporarily blocked. Please contact support for assistance.",
+        code: "ACCOUNT_BLOCKED",
+      });
     }
 
     res.json({

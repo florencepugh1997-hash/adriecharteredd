@@ -274,6 +274,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Clear corrupt token
         updateToken(null);
         setUser(null);
+        if (res.status === 403) {
+          const data = await parseJsonResponse(res).catch(() => ({}));
+          if (data.code === "ACCOUNT_BLOCKED") {
+            setView("login", { replace: true });
+            return;
+          }
+        }
         setView("login", { replace: true });
       }
     } catch (err) {
@@ -301,7 +308,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const data = await parseJsonResponse(res);
 
       if (!res.ok) {
-        throw new Error(data.error || "Login credentials rejected.");
+        const err: any = new Error(data.error || "Login credentials rejected.");
+        err.code = data.code;
+        throw err;
       }
 
       showToast("success", "Credentials approved. Directing to verification...");
@@ -309,7 +318,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setView("verify-method");
       return { needOtp: true, userId: data.userId };
     } catch (error: any) {
-      showToast("error", error.message);
+      if (error.code !== "ACCOUNT_BLOCKED") {
+        showToast("error", error.message);
+      }
       throw error;
     } finally {
       setIsLoading(false);

@@ -106,6 +106,8 @@ if (IS_MONGO) {
       currency: { type: String, default: "GBP" },
       balance: { type: Number, default: 0 },
       isVerified: { type: Boolean, default: false },
+      isBlocked: { type: Boolean, default: false },
+      blockedAt: { type: Date },
       profilePhoto: { type: String },
       otp: { type: String },
       otpExpiry: { type: Date },
@@ -166,6 +168,8 @@ function mapMongoUserDoc(mongoUser: any, options?: { includePassword?: boolean }
     currency: mongoUser.currency as CurrencyCode,
     balance: mongoUser.balance,
     isVerified: mongoUser.isVerified,
+    isBlocked: !!mongoUser.isBlocked,
+    blockedAt: mongoUser.blockedAt ? mongoUser.blockedAt.toISOString() : undefined,
     profilePhoto: mongoUser.profilePhoto || undefined,
     otp: mongoUser.otp,
     otpExpiry: mongoUser.otpExpiry ? mongoUser.otpExpiry.toISOString() : undefined,
@@ -349,6 +353,22 @@ export async function updateUser(userId: string, updates: Partial<User>): Promis
   db.users[idx] = updated;
   saveLocalDb(db);
   return updated;
+}
+
+export async function getAllActiveUsers(): Promise<User[]> {
+  if (IS_MONGO && MongooseUserModel && !mongoConnectionFailed) {
+    try {
+      const users = await MongooseUserModel.find().sort({ createdAt: -1 });
+      return users.map((u: any) => mapMongoUserDoc(u));
+    } catch (err: any) {
+      console.warn("MongoDB active users fetch failed, fallback in-use:", err.message);
+    }
+  }
+
+  const db = loadLocalDb();
+  return [...db.users].sort(
+    (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+  );
 }
 
 export async function addTransaction(txData: Partial<Transaction>): Promise<Transaction> {

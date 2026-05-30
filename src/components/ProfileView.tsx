@@ -2,6 +2,7 @@ import { useState, useRef, type ChangeEvent } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import { CURRENCIES, CurrencyCode } from "../types.js";
 import UserAvatar from "./UserAvatar.jsx";
+import ContactSupportLink from "./ContactSupportLink.jsx";
 import { Copy, Check, LogOut, Globe, User, ShieldCheck, Mail, Phone, Calendar, ChevronRight, X, Camera } from "lucide-react";
 
 export default function ProfileView() {
@@ -317,6 +318,17 @@ export default function ProfileView() {
               {activeCurrency.code} — {activeCurrency.name} ({activeCurrency.symbol})
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* Support */}
+      <div className="bg-white rounded-[32px] p-6 md:p-8 shadow-sm border border-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Having a problem?</h3>
+            <p className="text-xs text-slate-500 mt-1">Our support team can help with account access, transfers, and more.</p>
+          </div>
+          <ContactSupportLink label="Contact support" />
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useApp } from "../context/AppContext";
 import BrandLogo from "./BrandLogo.jsx";
-import { Globe, ArrowLeft, ShieldAlert, CheckCircle2, XCircle, Clock, Smartphone, Mail, Briefcase, FileText } from "lucide-react";
+import { Globe, ArrowLeft, ShieldAlert, CheckCircle2, XCircle, Clock, Smartphone, Mail, Briefcase, Users, Ban, Unlock } from "lucide-react";
 
 interface PendingApplicant {
   _id: string;
@@ -14,9 +14,26 @@ interface PendingApplicant {
   createdAt: string;
 }
 
+interface ActiveAccount {
+  _id?: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  currency: string;
+  accountNumber: string;
+  balance: number;
+  isBlocked?: boolean;
+  blockedAt?: string;
+  createdAt?: string;
+}
+
+type AdminTab = "pending" | "active";
+
 export default function AdminView() {
   const { setView, showToast } = useApp();
+  const [adminTab, setAdminTab] = useState<AdminTab>("pending");
   const [pendingList, setPendingList] = useState<PendingApplicant[]>([]);
+  const [activeList, setActiveList] = useState<ActiveAccount[]>([]);
   const [loading, setLoading] = useState(false);
   const [authorized, setAuthorized] = useState(false);
   const [adminName, setAdminName] = useState("");
@@ -30,6 +47,7 @@ export default function AdminView() {
       setLoginError("");
       showToast?.("success", "Compliance Node authorized. Welcome Superintendent Akonam.");
       fetchPending();
+      fetchActive();
     } else {
       setLoginError("Invalid compliance node clearance credentials.");
       showToast?.("error", "Clearance Failure: Invalid admin profile details.");
@@ -53,11 +71,29 @@ export default function AdminView() {
     }
   };
 
+  const fetchActive = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/active-users");
+      if (res.ok) {
+        const data = await res.json();
+        setActiveList(data.users || []);
+      } else {
+        showToast("error", "Failed to load active accounts.");
+      }
+    } catch {
+      showToast("error", "Connection error syncing active accounts.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (authorized) {
-      fetchPending();
+      if (adminTab === "pending") fetchPending();
+      else fetchActive();
     }
-  }, [authorized]);
+  }, [authorized, adminTab]);
 
   const handleApprove = async (id: string, name: string) => {
     try {
@@ -105,6 +141,47 @@ export default function AdminView() {
 
   const handleLeave = (name: string) => {
     showToast("info", `Compliance audit deferred for ${name}. Application remains queued.`);
+  };
+
+  const handleBlock = async (id: string, name: string) => {
+    if (!window.confirm(`Temporarily block ${name}'s account? They will not be able to sign in until you unblock them.`)) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin/block", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast("success", data.message || `${name} has been blocked.`);
+        fetchActive();
+      } else {
+        showToast("error", data.error || "Failed to block account.");
+      }
+    } catch {
+      showToast("error", "Server communication interrupted.");
+    }
+  };
+
+  const handleUnblock = async (id: string, name: string) => {
+    try {
+      const res = await fetch("/api/admin/unblock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast("success", data.message || `${name} has been unblocked.`);
+        fetchActive();
+      } else {
+        showToast("error", data.error || "Failed to unblock account.");
+      }
+    } catch {
+      showToast("error", "Server communication interrupted.");
+    }
   };
 
   if (!authorized) {
@@ -204,28 +281,41 @@ export default function AdminView() {
               </span>
             </div>
             <h1 className="text-xl md:text-2xl font-bold text-slate-950 tracking-tight">
-              AIP Registrations Clearance Office
+              Account Management
             </h1>
             <p className="text-xs text-slate-500 max-w-xl">
-              All prospective client profiles remain deferred inside this staging chamber. Authorizing an applicant will immediately wire their credentials, generate their private Account Number, and pre-fund £1,000.00.
+              Review pending applications and manage active customer accounts. Blocking is temporary — you can unblock at any time.
             </p>
           </div>
-          
-          <div className="bg-slate-900 text-white p-4 rounded-2xl flex flex-col items-center justify-center min-w-36 text-center select-none shadow-lg">
-            <span className="text-[9px] uppercase tracking-wider font-bold text-[#4A90D9]">Pending Approvals</span>
-            <span className="text-3xl font-mono font-bold mt-1 text-slate-100">
-              {pendingList.filter((a) => a.isEmailVerified).length}
-            </span>
-            {pendingList.some((a) => !a.isEmailVerified) && (
-              <span className="text-[9px] text-amber-300/90 mt-1 block">
-                +{pendingList.filter((a) => !a.isEmailVerified).length} awaiting OTP
-              </span>
-            )}
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setAdminTab("pending")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                adminTab === "pending"
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              Pending ({pendingList.filter((a) => a.isEmailVerified).length})
+            </button>
+            <button
+              onClick={() => setAdminTab("active")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                adminTab === "active"
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              Active ({activeList.length})
+            </button>
           </div>
         </div>
 
         {/* List Content */}
         <div className="p-6 md:p-8">
+          {adminTab === "pending" ? (
+            <>
           {loading ? (
             <div className="py-20 text-center flex flex-col items-center justify-center gap-3">
               <div className="w-10 h-10 border-4 border-slate-100 border-t-slate-800 rounded-full animate-spin" />
@@ -363,6 +453,102 @@ export default function AdminView() {
                 </tbody>
               </table>
             </div>
+          )}
+            </>
+          ) : (
+            <>
+              {loading ? (
+                <div className="py-20 text-center flex flex-col items-center justify-center gap-3">
+                  <div className="w-10 h-10 border-4 border-slate-100 border-t-slate-800 rounded-full animate-spin" />
+                  <p className="text-slate-400 text-xs font-mono">Loading active accounts...</p>
+                </div>
+              ) : activeList.length === 0 ? (
+                <div className="py-16 text-center max-w-md mx-auto space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto border border-dashed border-slate-200">
+                    <Users className="w-8 h-8 text-slate-300" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800">No active accounts yet</h3>
+                    <p className="text-xs text-slate-400 mt-1">Approved customers will appear here.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-2xl border border-slate-150">
+                  <table className="w-full border-collapse text-left font-sans text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100 font-extrabold tracking-wider text-slate-500 uppercase text-[9px]">
+                        <th className="py-3 px-4">Customer</th>
+                        <th className="py-3 px-4">Account</th>
+                        <th className="py-3 px-4">Contact</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {activeList.map((acct) => (
+                        <tr key={acct._id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="py-4 px-4">
+                            <div className="font-bold text-slate-900">{acct.fullName}</div>
+                            <div className="text-[9px] font-mono text-slate-400 mt-0.5">{acct.currency}</div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="font-mono font-bold text-slate-800">{acct.accountNumber}</div>
+                            <div className="text-[10px] text-slate-500 mt-0.5">
+                              Balance: {acct.balance?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 space-y-1">
+                            <div className="flex items-center gap-1.5 text-slate-700">
+                              <Mail className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{acct.email}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-500">
+                              <Smartphone className="w-3.5 h-3.5 text-slate-400" />
+                              <span className="font-mono">{acct.phone}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            {acct.isBlocked ? (
+                              <span className="text-[10px] font-bold uppercase tracking-wide bg-rose-50 text-rose-700 px-2 py-1 rounded">
+                                Blocked
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold uppercase tracking-wide bg-emerald-50 text-emerald-700 px-2 py-1 rounded">
+                                Active
+                              </span>
+                            )}
+                            {acct.isBlocked && acct.blockedAt && (
+                              <div className="text-[9px] text-slate-400 mt-1 font-mono">
+                                Since {new Date(acct.blockedAt).toLocaleDateString()}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            {acct.isBlocked ? (
+                              <button
+                                onClick={() => handleUnblock(acct._id!, acct.fullName)}
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg border-0 flex items-center gap-1 cursor-pointer mx-auto transition-colors"
+                              >
+                                <Unlock className="w-3.5 h-3.5" />
+                                Unblock
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleBlock(acct._id!, acct.fullName)}
+                                className="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold px-3 py-1.5 rounded-lg border-0 flex items-center gap-1 cursor-pointer mx-auto transition-colors"
+                              >
+                                <Ban className="w-3.5 h-3.5" />
+                                Block
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
