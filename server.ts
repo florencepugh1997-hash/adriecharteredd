@@ -230,13 +230,16 @@ function maskEmail(email: string): string {
   return `${local.slice(0, 2)}***@${domain}`;
 }
 
-// Helper: Mask phone (+447911123456 -> +44 **** **456)
+// Helper: Mask phone for display (+447911123456, +2348012345678, etc.)
 function maskPhone(phone: string): string {
-  if (phone.length <= 4) return phone;
-  const country = phone.startsWith("+") ? phone.slice(0, 3) : "+44";
-  const rest = phone.slice(country.length);
-  if (rest.length <= 3) return `${country} **** ${rest}`;
-  return `${country} **** **${rest.slice(-3)}`;
+  if (phone.length <= 6) return phone;
+  const last3 = phone.slice(-3);
+  if (phone.startsWith("+234")) return `+234 **** ***${last3}`;
+  if (phone.startsWith("+44")) return `+44 **** **${last3}`;
+  if (phone.startsWith("+1")) return `+1 *** *** ${last3}`;
+  const prefixMatch = phone.match(/^\+\d{1,3}/);
+  const prefix = prefixMatch ? prefixMatch[0] : "+";
+  return `${prefix} **** **${last3}`;
 }
 
 // Middleware: Authenticate Request via Bearer Token (strictly mapped to active user context)

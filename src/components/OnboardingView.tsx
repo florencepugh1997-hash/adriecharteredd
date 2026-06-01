@@ -25,20 +25,12 @@ import {
   MessageSquare,
   ShieldQuestion
 } from "lucide-react";
-
-const COUNTRY_CODES = [
-  { code: "+44", country: "United Kingdom", flag: "🇬🇧" },
-  { code: "+1", country: "United States / Canada", flag: "🇺🇸" },
-  { code: "+33", country: "France", flag: "🇫🇷" },
-  { code: "+49", country: "Germany", flag: "🇩🇪" },
-  { code: "+353", country: "Ireland", flag: "🇮🇪" },
-  { code: "+61", country: "Australia", flag: "🇦🇺" },
-  { code: "+64", country: "New Zealand", flag: "🇳🇿" },
-  { code: "+65", country: "Singapore", flag: "🇸🇬" },
-  { code: "+81", country: "Japan", flag: "🇯🇵" },
-  { code: "+971", country: "U.A.E.", flag: "🇦🇪" },
-  { code: "+852", country: "Hong Kong", flag: "🇭🇰" },
-];
+import {
+  COUNTRY_CODES,
+  formatPhoneE164,
+  phonePlaceholder,
+  validatePhoneForConfirmation,
+} from "../phoneCountries.js";
 
 interface OnboardingProps {
   initialStep?: number;
@@ -114,6 +106,12 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
       return;
     }
 
+    const phoneError = validatePhoneForConfirmation(phonePrefix, phoneRaw);
+    if (phoneError) {
+      setError(phoneError);
+      return;
+    }
+
     setStep(3);
   };
 
@@ -143,8 +141,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
     }
 
     setIsSubmitting(true);
-    const cleanPhoneBody = phoneRaw.replace(/\s+/g, "");
-    const formattedPhone = `${phonePrefix}${cleanPhoneBody}`;
+    const formattedPhone = formatPhoneE164(phonePrefix, phoneRaw);
 
     try {
       const data = await signup({
@@ -615,7 +612,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
                           value={phoneRaw}
                           onChange={(e) => setPhoneRaw(e.target.value.replace(/[^0-9]/g, ""))}
                           className="w-full pl-10 pr-4 h-12 bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-2xl text-xs outline-none transition-all placeholder:text-slate-400 font-mono"
-                          placeholder="Enter your number"
+                          placeholder={phonePlaceholder(phonePrefix)}
                           required
                         />
                       </div>
@@ -851,7 +848,9 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
                     <div className="flex-grow">
                       <h3 className="text-xs font-bold text-slate-800 uppercase tracking-widest leading-none">Send via WhatsApp</h3>
                       <p className="text-slate-400 text-[10px] mt-1">Twilio WhatsApp business message</p>
-                      <p className="text-blue-500 font-mono text-xs font-bold mt-1 tracking-wider">{phonePrefix} {phoneRaw}</p>
+                      <p className="text-blue-500 font-mono text-xs font-bold mt-1 tracking-wider">
+                        {formatPhoneE164(phonePrefix, phoneRaw)}
+                      </p>
                     </div>
                   </button>
 
@@ -868,7 +867,9 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
                     <div className="flex-grow">
                       <h3 className="text-xs font-bold text-slate-800 uppercase tracking-widest leading-none">Send via SMS</h3>
                       <p className="text-slate-400 text-[10px] mt-1">Twilio cellular text notification</p>
-                      <p className="text-blue-500 font-mono text-xs font-bold mt-1 tracking-wider">{phonePrefix} {phoneRaw}</p>
+                      <p className="text-blue-500 font-mono text-xs font-bold mt-1 tracking-wider">
+                        {formatPhoneE164(phonePrefix, phoneRaw)}
+                      </p>
                     </div>
                   </button>
                 </div>
@@ -938,7 +939,7 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
                     ) : (
                       <>
                         <strong className="text-slate-800 font-bold font-mono">
-                          {phonePrefix} {phoneRaw}
+                          {formatPhoneE164(phonePrefix, phoneRaw)}
                         </strong>
                         <button 
                           onClick={() => setStep(2)} 
