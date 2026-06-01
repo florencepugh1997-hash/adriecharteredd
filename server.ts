@@ -230,11 +230,10 @@ function maskEmail(email: string): string {
   return `${local.slice(0, 2)}***@${domain}`;
 }
 
-// Helper: Mask phone for display (+447911123456, +2348012345678, etc.)
+// Helper: Mask phone for display (+447911123456, etc.)
 function maskPhone(phone: string): string {
   if (phone.length <= 6) return phone;
   const last3 = phone.slice(-3);
-  if (phone.startsWith("+234")) return `+234 **** ***${last3}`;
   if (phone.startsWith("+44")) return `+44 **** **${last3}`;
   if (phone.startsWith("+1")) return `+1 *** *** ${last3}`;
   const prefixMatch = phone.match(/^\+\d{1,3}/);
