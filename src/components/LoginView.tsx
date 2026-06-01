@@ -162,6 +162,11 @@ export default function LoginView() {
             >
               ← Return to Wealth Presentation
             </button>
+            <p className="text-[10px] text-slate-400">
+              <button type="button" onClick={() => setView("terms")} className="hover:text-[#4A90D9] bg-transparent border-0 cursor-pointer p-0">Terms of Service</button>
+              {" · "}
+              <button type="button" onClick={() => setView("privacy")} className="hover:text-[#4A90D9] bg-transparent border-0 cursor-pointer p-0">Privacy Policy</button>
+            </p>
           </div>
         </>
       )}

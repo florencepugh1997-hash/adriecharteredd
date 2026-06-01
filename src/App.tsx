@@ -7,6 +7,8 @@ import AdminView from "./components/AdminView";
 import VerifyMethodView from "./components/VerifyMethodView";
 import VerifyOtpView from "./components/VerifyOtpView";
 import DashboardView from "./components/DashboardView";
+import TermsOfServiceView from "./components/TermsOfServiceView";
+import PrivacyPolicyView from "./components/PrivacyPolicyView";
 import Toast from "./components/Toast";
 
 function AdrieBankingPortal() {
@@ -20,6 +22,8 @@ function AdrieBankingPortal() {
       <Toast toasts={toasts} onClose={removeToast} />
 
       {currentView === "landing" && <LandingView />}
+      {currentView === "terms" && <TermsOfServiceView />}
+      {currentView === "privacy" && <PrivacyPolicyView />}
 
       {currentView === "admin" && <AdminView />}
       {currentView === "dashboard" && <DashboardView />}

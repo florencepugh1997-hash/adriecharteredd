@@ -649,7 +649,23 @@ export default function OnboardingView({ initialStep = 1 }: OnboardingProps) {
                     ← Give up and go back
                   </button>
                   <p className="text-[10px] text-slate-400 max-w-xs mx-auto leading-normal">
-                    By continuing, you agree to our <span className="font-semibold text-blue-400 hover:underline cursor-pointer">Terms of Use</span> and <span className="font-semibold text-blue-400 hover:underline cursor-pointer">Privacy Policy</span>.
+                    By continuing, you agree to our{" "}
+                    <button
+                      type="button"
+                      onClick={() => setView("terms")}
+                      className="font-semibold text-blue-400 hover:underline cursor-pointer bg-transparent border-0 p-0"
+                    >
+                      Terms of Service
+                    </button>{" "}
+                    and{" "}
+                    <button
+                      type="button"
+                      onClick={() => setView("privacy")}
+                      className="font-semibold text-blue-400 hover:underline cursor-pointer bg-transparent border-0 p-0"
+                    >
+                      Privacy Policy
+                    </button>
+                    .
                   </p>
                 </div>
               </motion.div>

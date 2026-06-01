@@ -105,8 +105,23 @@ export default function LandingView() {
         </section>
       </main>
 
-      <footer className="py-8 text-center text-xs text-slate-400">
-        © {new Date().getFullYear()} AdrieChartered Bank · Authorised & Regulated
+      <footer className="py-8 px-6 text-center text-xs text-slate-400 space-y-3">
+        <div className="flex items-center justify-center gap-4">
+          <button
+            onClick={() => setView("terms")}
+            className="hover:text-[#4A90D9] bg-transparent border-0 cursor-pointer transition-colors"
+          >
+            Terms of Service
+          </button>
+          <span className="text-slate-300">·</span>
+          <button
+            onClick={() => setView("privacy")}
+            className="hover:text-[#4A90D9] bg-transparent border-0 cursor-pointer transition-colors"
+          >
+            Privacy Policy
+          </button>
+        </div>
+        <p>© {new Date().getFullYear()} AdrieChartered Bank · Authorised & Regulated</p>
       </footer>
     </div>
   );

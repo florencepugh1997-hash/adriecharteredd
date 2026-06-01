@@ -6,7 +6,9 @@ export type AppView =
   | "verify-method"
   | "verify"
   | "dashboard"
-  | "admin";
+  | "admin"
+  | "terms"
+  | "privacy";
 
 export type DashboardTab = "home" | "send" | "history" | "profile";
 
@@ -19,6 +21,8 @@ const VIEW_TO_PATH: Record<AppView, string> = {
   verify: "/verify",
   dashboard: "/dashboard",
   admin: "/admin",
+  terms: "/terms",
+  privacy: "/privacy",
 };
 
 const DASHBOARD_TAB_TO_SEGMENT: Record<DashboardTab, string> = {
@@ -59,7 +63,7 @@ export function pathToView(pathname: string): { view: AppView; dashboardTab: Das
 }
 
 export function isPublicView(view: AppView): boolean {
-  return ["landing", "onboarding", "login", "signup", "verify-method", "verify", "admin"].includes(view);
+  return ["landing", "onboarding", "login", "signup", "verify-method", "verify", "admin", "terms", "privacy"].includes(view);
 }
 
 export function isAuthEntryView(view: AppView): boolean {
